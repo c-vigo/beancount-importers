@@ -13,7 +13,8 @@
                 "ms-vscode.vscode-json",
                 "redhat.vscode-yaml",
                 "GitHub.vscode-pull-request-github",
-                "tamasfe.even-better-toml"
+                "tamasfe.even-better-toml",
+                "mechatroner.rainbow-csv"
             ],
             "settings": {
                 "python.defaultInterpreterPath": "/usr/local/bin/python",
