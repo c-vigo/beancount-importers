@@ -6,5 +6,18 @@ LABEL maintainer="Carlos Vigo <carviher1990@gmail.com>"
 LABEL description="Beancount Importers Development Environment Image"
 LABEL version="1.0.0"
 
+# Create workspace directory
+RUN mkdir -p /workspace
+WORKDIR /workspace
+
+# Install app in editing mode with dev and test dependencies
+COPY \
+    beancount_importers \
+    pyproject.toml \
+    docs \
+    tests \
+    .
+RUN pip install --no-cache-dir -e .[dev,test]
+
 # Default command - interactive shell
 CMD ["/bin/bash"]
