@@ -8,7 +8,7 @@ A collection of importers for [Beancount](https://beancount.github.io/), the dou
 - **Type Safety**: Full type hints and mypy support
 - **Modern Python**: Requires Python 3.12
 - **Comprehensive Testing**: pytest-based test suite
-- **Code Quality**: Black, isort, flake8, and mypy integration
+- **Code Quality**: Ruff (linting & formatting), isort, and mypy integration
 
 ## Installation
 
