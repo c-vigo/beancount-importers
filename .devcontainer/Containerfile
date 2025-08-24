@@ -16,7 +16,7 @@ COPY \
     pyproject.toml \
     docs \
     tests \
-    .
+    /workspace/
 RUN pip install --no-cache-dir -e .[dev,test]
 
 # Default command - interactive shell
