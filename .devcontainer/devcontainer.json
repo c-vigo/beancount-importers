@@ -14,6 +14,7 @@
                 "ms-vscode.vscode-json",
                 "redhat.vscode-yaml",
                 "GitHub.vscode-pull-request-github",
+                "tamasfe.even-better-toml"
             ],
             "settings": {
                 "python.defaultInterpreterPath": "/usr/bin/python3",
