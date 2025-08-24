@@ -33,7 +33,10 @@
                     "**/__pycache__": true,
                     "**/*.pyc": true,
                     "**/.pytest_cache": true
-                }
+                },
+                "git.ignoredFolders": [
+                    ".pre-commit-cache"
+                ]
             }
         }
     },
