@@ -1,0 +1,10 @@
+# Use Beancount Fava Development Image
+FROM ghcr.io/c-vigo/beancount-fava:v1.0.0
+
+# Add metadata
+LABEL maintainer="Carlos Vigo <carviher1990@gmail.com>"
+LABEL description="Beancount Importers Development Environment Image"
+LABEL version="1.0.0"
+
+# Default command - interactive shell
+CMD ["/bin/bash"]

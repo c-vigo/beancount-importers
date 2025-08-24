@@ -1,0 +1,67 @@
+# .pre-commit-config.yaml
+
+# Exclude GE files from any pre-commit hooks
+exclude: |
+  (?x)(
+      ^ge_discovery_mi/ge_discovery_mi/resources/acq\.cfg.*$ |
+      ^scripts/GE_Scripts/.* |
+      ^scripts/old/.*
+  )
+
+repos:
+  # Ruff: Linting & Formatting
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.3.5
+    hooks:
+      - id: ruff
+        args: ["--fix"]
+      - id: ruff-format
+
+  # Mypy: Static Type Checking
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.10.0
+    hooks:
+      - id: mypy
+
+  # Dockerfile Linting
+  - repo: local
+    hooks:
+      - id: hadolint
+        name: hadolint
+        entry: hadolint
+        language: system
+        types: [dockerfile]
+        args: ["--ignore", "DL3008", "--ignore", "DL3009"]
+
+  # YAML Linting
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.35.1
+    hooks:
+      - id: yamllint
+        args: ["--format", "parsable", "--strict"]
+
+  # General Pre-commit Hooks (Fixes formatting issues)
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-merge-conflict
+
+  # Shell: Linting and Static Analysis
+  - repo: local
+    hooks:
+      - id: shellcheck
+        name: shellcheck
+        description: Test shell scripts with shellcheck
+        entry: shellcheck
+        language: python
+        types: [shell]
+        require_serial: true
+        args: ["--severity=warning"]
+
+  # Shell: Formatting
+  - repo: https://github.com/scop/pre-commit-shfmt
+    rev: v3.12.0-2
+    hooks:
+      - id: shfmt         # prebuilt upstream executable

@@ -1,0 +1,44 @@
+{
+    "name": "Beancount Importers Development",
+    "image": "beancount-importers:latest",
+    "dockerComposeFile": "../docker-compose.yml",
+    "service": "dev",
+    "workspaceFolder": "/workspace",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-python.python",
+                "ms-python.flake8",
+                "ms-python.black-formatter",
+                "ms-python.isort",
+                "ms-vscode.vscode-json",
+                "redhat.vscode-yaml",
+                "GitHub.vscode-pull-request-github",
+            ],
+            "settings": {
+                "python.defaultInterpreterPath": "/usr/bin/python3",
+                "python.linting.enabled": true,
+                "python.linting.flake8Enabled": true,
+                "python.formatting.provider": "black",
+                "python.sortImports.args": [
+                    "--profile",
+                    "black"
+                ],
+                "editor.formatOnSave": true,
+                "editor.codeActionsOnSave": {
+                    "source.organizeImports": true
+                },
+                "files.exclude": {
+                    "**/__pycache__": true,
+                    "**/*.pyc": true,
+                    "**/.pytest_cache": true
+                }
+            }
+        }
+    },
+    "mounts": [
+        "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
+        "source=${env:GPG_SOCKET_PATH},target=/root/.gnupg/S.gpg-agent,type=bind"
+    ],
+    "postAttachCommand": "/workspace/.devcontainer/post-attach.sh"
+}
