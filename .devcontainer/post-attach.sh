@@ -28,6 +28,20 @@ else
 	echo "No .githooks directory found, using default git hooks"
 fi
 
+# Setup pre-commit hooks
+echo "Setting up pre-commit hooks..."
+if command -v pre-commit &>/dev/null; then
+	if [ -f .pre-commit-config.yaml ]; then
+		echo "Installing pre-commit hooks..."
+		pre-commit install-hooks
+		echo "Pre-commit hooks installed successfully"
+	else
+		echo "No .pre-commit-config.yaml found, skipping pre-commit setup"
+	fi
+else
+	echo "Pre-commit not found, skipping pre-commit setup"
+fi
+
 # Setup GPG key import
 echo "Setting up GPG key import..."
 
