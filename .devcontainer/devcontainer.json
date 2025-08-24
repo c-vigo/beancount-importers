@@ -17,7 +17,7 @@
                 "tamasfe.even-better-toml"
             ],
             "settings": {
-                "python.defaultInterpreterPath": "/usr/bin/python3",
+                "python.defaultInterpreterPath": "/usr/local/bin/python",
                 "python.linting.enabled": true,
                 "python.linting.flake8Enabled": true,
                 "python.formatting.provider": "black",
