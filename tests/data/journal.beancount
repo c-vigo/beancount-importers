@@ -1,0 +1,379 @@
+; -*- mode: beancount; coding: utf-8; fill-column: 400; -*-
+; Beancount file for N26 comprehensive sample transactions
+; This file shows how the N26 importer should parse the CSV transactions
+
+option "title" "N26 Comprehensive Sample Transactions"
+option "operating_currency" "EUR"
+
+; Account definitions
+2024-01-01 open Assets:N26:Main EUR
+2024-01-01 open Assets:N26:Main:balance EUR
+2024-01-01 open Expenses:Food:Dining EUR
+2024-01-01 open Expenses:Food:Groceries EUR
+2024-01-01 open Expenses:Transportation EUR
+2024-01-01 open Expenses:Entertainment EUR
+2024-01-01 open Expenses:Shopping EUR
+2024-01-01 open Expenses:Services EUR
+2024-01-01 open Expenses:Subscriptions EUR
+2024-01-01 open Expenses:Travel EUR
+2024-01-01 open Expenses:Insurance EUR
+2024-01-01 open Expenses:Utilities EUR
+2024-01-01 open Expenses:Healthcare EUR
+2024-01-01 open Expenses:Fees EUR
+2024-01-01 open Income:Salary EUR
+2024-01-01 open Income:Interest EUR
+2024-01-01 open Income:Refunds EUR
+2024-01-01 open Liabilities:Rent EUR
+
+; Sample transactions from the CSV file
+
+2024-01-15 * "STARBUCKS COFFEE" "Coffee purchase"
+  Assets:N26:Main:balance  -4.50 EUR
+  Assets:N26:Main           4.50 EUR
+
+2024-01-16 * "AMAZON.COM" "Online purchase - Books"
+  Assets:N26:Main:balance  -29.99 EUR
+  Assets:N26:Main           29.99 EUR
+
+2024-01-17 * "UBER *TRIP" "Ride from Airport"
+  Assets:N26:Main:balance  -18.75 EUR
+  Assets:N26:Main           18.75 EUR
+
+2024-01-18 * "John Smith" "Salary January 2024"
+  Assets:N26:Main:balance  2500.00 EUR
+  Assets:N26:Main         -2500.00 EUR
+
+2024-01-19 * "Maria García" "Rent payment"
+  Assets:N26:Main:balance  -800.00 EUR
+  Assets:N26:Main           800.00 EUR
+
+2024-01-20 * "N26 Bank" "Monthly account fee"
+  Assets:N26:Main:balance  -9.90 EUR
+  Assets:N26:Main           9.90 EUR
+
+2024-01-21 * "McDonald's" "Lunch"
+  Assets:N26:Main:balance  -12.45 EUR
+  Assets:N26:Main           12.45 EUR
+
+2024-01-22 * "HOTEL INTERCONTINENTAL" "Hotel booking - Paris"
+  Assets:N26:Main:balance  -245.80 EUR
+  Assets:N26:Main           245.80 EUR
+
+2024-01-23 * "AIRBNB *HME35PEAN3" "Vacation rental"
+  Assets:N26:Main:balance  -156.30 EUR
+  Assets:N26:Main           156.30 EUR
+
+2024-01-24 * "SPOTIFY" "Premium subscription"
+  Assets:N26:Main:balance  -9.99 EUR
+  Assets:N26:Main           9.99 EUR
+
+2024-01-25 * "NETFLIX" "Streaming service"
+  Assets:N26:Main:balance  -15.99 EUR
+  Assets:N26:Main           15.99 EUR
+
+2024-01-26 * "Café Français" "Coffee & croissant"
+  Assets:N26:Main:balance  -8.50 EUR
+  Assets:N26:Main           8.50 EUR
+
+2024-01-27 * "RESTAURANTE ESPAÑOL" "Dinner with friends"
+  Assets:N26:Main:balance  -67.80 EUR
+  Assets:N26:Main           67.80 EUR
+
+2024-01-28 * "GAS STATION" "Fuel"
+  Assets:N26:Main:balance  -45.20 EUR
+  Assets:N26:Main           45.20 EUR
+
+2024-01-29 * "SUPERMARKET" "Weekly groceries"
+  Assets:N26:Main:balance  -89.45 EUR
+  Assets:N26:Main           89.45 EUR
+
+2024-01-30 * "PHARMACY" "Medicine"
+  Assets:N26:Main:balance  -23.10 EUR
+  Assets:N26:Main           23.10 EUR
+
+2024-01-31 * "GYM MEMBERSHIP" "Monthly fee"
+  Assets:N26:Main:balance  -35.00 EUR
+  Assets:N26:Main           35.00 EUR
+
+2024-02-01 * "BOOKING.COM" "Hotel reservation"
+  Assets:N26:Main:balance  -189.99 EUR
+  Assets:N26:Main           189.99 EUR
+
+2024-02-02 * "PAYPAL *EBAY" "Online auction purchase"
+  Assets:N26:Main:balance  -45.67 EUR
+  Assets:N26:Main           45.67 EUR
+
+2024-02-03 * "APPLE.COM" "iPhone case"
+  Assets:N26:Main:balance  -19.99 EUR
+  Assets:N26:Main           19.99 EUR
+
+2024-02-04 * "GOOGLE *GOOGLE PLAY" "App purchase"
+  Assets:N26:Main:balance  -2.99 EUR
+  Assets:N26:Main           2.99 EUR
+
+2024-02-05 * "MICROSOFT" "Office 365 subscription"
+  Assets:N26:Main:balance  -69.99 EUR
+  Assets:N26:Main           69.99 EUR
+
+2024-02-06 * "DIGITALOCEAN" "Cloud hosting"
+  Assets:N26:Main:balance  -12.00 EUR
+  Assets:N26:Main           12.00 EUR
+
+2024-02-07 * "GITHUB" "Pro subscription"
+  Assets:N26:Main:balance  -4.00 EUR
+  Assets:N26:Main           4.00 EUR
+
+2024-02-08 * "ZOOM" "Video conferencing"
+  Assets:N26:Main:balance  -14.99 EUR
+  Assets:N26:Main           14.99 EUR
+
+2024-02-09 * "CANVA" "Design tool subscription"
+  Assets:N26:Main:balance  -12.99 EUR
+  Assets:N26:Main           12.99 EUR
+
+2024-02-10 * "NOTION" "Productivity app"
+  Assets:N26:Main:balance  -8.00 EUR
+  Assets:N26:Main           8.00 EUR
+
+2024-02-11 * "FREELANCER.COM" "Platform fee"
+  Assets:N26:Main:balance  -5.50 EUR
+  Assets:N26:Main           5.50 EUR
+
+2024-02-12 * "UPWORK" "Service fee"
+  Assets:N26:Main:balance  -3.20 EUR
+  Assets:N26:Main           3.20 EUR
+
+2024-02-13 * "FIVERR" "Gig marketplace"
+  Assets:N26:Main:balance  -7.50 EUR
+  Assets:N26:Main           7.50 EUR
+
+2024-02-14 * "FLOWERS.COM" "Valentine's Day flowers"
+  Assets:N26:Main:balance  -45.00 EUR
+  Assets:N26:Main           45.00 EUR
+
+2024-02-15 * "JEWELRY STORE" "Anniversary gift"
+  Assets:N26:Main:balance  -299.99 EUR
+  Assets:N26:Main           299.99 EUR
+
+2024-02-16 * "INSURANCE COMPANY" "Car insurance"
+  Assets:N26:Main:balance  -120.00 EUR
+  Assets:N26:Main           120.00 EUR
+
+2024-02-17 * "UTILITY COMPANY" "Electricity bill"
+  Assets:N26:Main:balance  -85.30 EUR
+  Assets:N26:Main           85.30 EUR
+
+2024-02-18 * "INTERNET PROVIDER" "Internet service"
+  Assets:N26:Main:balance  -39.99 EUR
+  Assets:N26:Main           39.99 EUR
+
+2024-02-19 * "MOBILE PROVIDER" "Phone plan"
+  Assets:N26:Main:balance  -25.00 EUR
+  Assets:N26:Main           25.00 EUR
+
+2024-02-20 * "BANK TRANSFER" "ATM withdrawal"
+  Assets:N26:Main:balance  -100.00 EUR
+  Assets:N26:Main           100.00 EUR
+
+2024-02-21 * "ATM WITHDRAWAL" "Cash withdrawal"
+  Assets:N26:Main:balance  -50.00 EUR
+  Assets:N26:Main           50.00 EUR
+
+2024-02-22 * "DEPOSIT" "Cash deposit"
+  Assets:N26:Main:balance  200.00 EUR
+  Assets:N26:Main         -200.00 EUR
+
+2024-02-23 * "REFUND" "Returned item"
+  Assets:N26:Main:balance  29.99 EUR
+  Assets:N26:Main         -29.99 EUR
+
+2024-02-24 * "CASHBACK" "Rewards program"
+  Assets:N26:Main:balance  5.25 EUR
+  Assets:N26:Main         -5.25 EUR
+
+2024-02-25 * "INTEREST" "Account interest"
+  Assets:N26:Main:balance  2.45 EUR
+  Assets:N26:Main         -2.45 EUR
+
+; Foreign currency transactions
+2024-02-26 * "FOREIGN TRANSACTION" "US Dollar purchase"
+  Assets:N26:Main:balance  -54.11 EUR
+  Assets:N26:Main           54.11 EUR
+
+2024-02-27 * "BRITISH POUND" "UK purchase"
+  Assets:N26:Main:balance  -102.90 EUR
+  Assets:N26:Main           102.90 EUR
+
+2024-02-28 * "JAPANESE YEN" "Tokyo purchase"
+  Assets:N26:Main:balance  -8.50 EUR
+  Assets:N26:Main           8.50 EUR
+
+2024-02-29 * "SWISS FRANC" "Zurich purchase"
+  Assets:N26:Main:balance  -45.20 EUR
+  Assets:N26:Main           45.20 EUR
+
+2024-03-01 * "CANADIAN DOLLAR" "Toronto purchase"
+  Assets:N26:Main:balance  -67.80 EUR
+  Assets:N26:Main           67.80 EUR
+
+2024-03-02 * "AUSTRALIAN DOLLAR" "Sydney purchase"
+  Assets:N26:Main:balance  -89.45 EUR
+  Assets:N26:Main           89.45 EUR
+
+2024-03-03 * "BRAZILIAN REAL" "São Paulo purchase"
+  Assets:N26:Main:balance  -23.10 EUR
+  Assets:N26:Main           23.10 EUR
+
+2024-03-04 * "MEXICAN PESO" "Mexico City purchase"
+  Assets:N26:Main:balance  -35.00 EUR
+  Assets:N26:Main           35.00 EUR
+
+2024-03-05 * "SOUTH AFRICAN RAND" "Cape Town purchase"
+  Assets:N26:Main:balance  -189.99 EUR
+  Assets:N26:Main           189.99 EUR
+
+2024-03-06 * "INDIAN RUPEE" "Mumbai purchase"
+  Assets:N26:Main:balance  -45.67 EUR
+  Assets:N26:Main           45.67 EUR
+
+2024-03-07 * "CHINESE YUAN" "Beijing purchase"
+  Assets:N26:Main:balance  -19.99 EUR
+  Assets:N26:Main           19.99 EUR
+
+2024-03-08 * "RUSSIAN RUBLE" "Moscow purchase"
+  Assets:N26:Main:balance  -2.99 EUR
+  Assets:N26:Main           2.99 EUR
+
+2024-03-09 * "TURKISH LIRA" "Istanbul purchase"
+  Assets:N26:Main:balance  -69.99 EUR
+  Assets:N26:Main           69.99 EUR
+
+; Special characters and edge cases
+2024-03-10 * "SPECIAL CHARS & CO" "Test: áéíóú ñ ç ß € £ ¥"
+  Assets:N26:Main:balance  -12.00 EUR
+  Assets:N26:Main           12.00 EUR
+
+2024-03-11 * "EMOJI STORE 🛍️" "Purchase with emojis 🎉"
+  Assets:N26:Main:balance  -4.00 EUR
+  Assets:N26:Main           4.00 EUR
+
+2024-03-12 * "QUOTES \"COMPANY\"" "Company with quotes"
+  Assets:N26:Main:balance  -14.99 EUR
+  Assets:N26:Main           14.99 EUR
+
+2024-03-13 * "COMMA, INC" "Company with comma"
+  Assets:N26:Main:balance  -8.00 EUR
+  Assets:N26:Main           8.00 EUR
+
+2024-03-14 * "SEMICOLON; CORP" "Company with semicolon"
+  Assets:N26:Main:balance  -12.99 EUR
+  Assets:N26:Main           12.99 EUR
+
+2024-03-15 * "PARENTHESES (LTD)" "Company with parentheses"
+  Assets:N26:Main:balance  -7.50 EUR
+  Assets:N26:Main           7.50 EUR
+
+2024-03-16 * "BRACKETS [LLC]" "Company with brackets"
+  Assets:N26:Main:balance  -3.20 EUR
+  Assets:N26:Main           3.20 EUR
+
+2024-03-17 * "CURLY BRACES {GMBH}" "Company with braces"
+  Assets:N26:Main:balance  -5.50 EUR
+  Assets:N26:Main           5.50 EUR
+
+2024-03-18 * "SLASHES / BACKSLASHES \\" "Company with slashes"
+  Assets:N26:Main:balance  -25.00 EUR
+  Assets:N26:Main           25.00 EUR
+
+2024-03-19 * "PIPE | COMPANY" "Company with pipe"
+  Assets:N26:Main:balance  -39.99 EUR
+  Assets:N26:Main           39.99 EUR
+
+2024-03-20 * "AMPERSAND & CO" "Company with ampersand"
+  Assets:N26:Main:balance  -85.30 EUR
+  Assets:N26:Main           85.30 EUR
+
+2024-03-21 * "PERCENTAGE % INC" "Company with percentage"
+  Assets:N26:Main:balance  -120.00 EUR
+  Assets:N26:Main           120.00 EUR
+
+2024-03-22 * "ASTERISK * COMPANY" "Company with asterisk"
+  Assets:N26:Main:balance  -299.99 EUR
+  Assets:N26:Main           299.99 EUR
+
+2024-03-23 * "HASH # CORP" "Company with hash"
+  Assets:N26:Main:balance  -45.00 EUR
+  Assets:N26:Main           45.00 EUR
+
+2024-03-24 * "AT @ COMPANY" "Company with at symbol"
+  Assets:N26:Main:balance  -67.80 EUR
+  Assets:N26:Main           67.80 EUR
+
+2024-03-25 * "TILDE ~ COMPANY" "Company with tilde"
+  Assets:N26:Main:balance  -156.30 EUR
+  Assets:N26:Main           156.30 EUR
+
+2024-03-26 * "CARET ^ CORP" "Company with caret"
+  Assets:N26:Main:balance  -245.80 EUR
+  Assets:N26:Main           245.80 EUR
+
+2024-03-27 * "UNDERSCORE _ INC" "Company with underscore"
+  Assets:N26:Main:balance  -18.75 EUR
+  Assets:N26:Main           18.75 EUR
+
+2024-03-28 * "PLUS + COMPANY" "Company with plus"
+  Assets:N26:Main:balance  -29.99 EUR
+  Assets:N26:Main           29.99 EUR
+
+2024-03-29 * "MINUS - CORP" "Company with minus"
+  Assets:N26:Main:balance  -4.50 EUR
+  Assets:N26:Main           4.50 EUR
+
+2024-03-30 * "EQUAL = INC" "Company with equal"
+  Assets:N26:Main:balance  -12.45 EUR
+  Assets:N26:Main           12.45 EUR
+
+2024-03-31 * "QUESTION ? COMPANY" "Company with question mark"
+  Assets:N26:Main:balance  -9.99 EUR
+  Assets:N26:Main           9.99 EUR
+
+2024-04-01 * "EXCLAMATION ! CORP" "Company with exclamation"
+  Assets:N26:Main:balance  -15.99 EUR
+  Assets:N26:Main           15.99 EUR
+
+2024-04-02 * "DOT . COMPANY" "Company with dot"
+  Assets:N26:Main:balance  -8.50 EUR
+  Assets:N26:Main           8.50 EUR
+
+2024-04-03 * "COLON : INC" "Company with colon"
+  Assets:N26:Main:balance  -67.80 EUR
+  Assets:N26:Main           67.80 EUR
+
+; Edge cases
+2024-04-04 * "ZERO AMOUNT" "Free transaction"
+  Assets:N26:Main:balance  0.00 EUR
+  Assets:N26:Main           0.00 EUR
+
+2024-04-05 * "LARGE AMOUNT" "Big purchase"
+  Assets:N26:Main:balance  -9999.99 EUR
+  Assets:N26:Main           9999.99 EUR
+
+2024-04-06 * "SMALL AMOUNT" "Tiny transaction"
+  Assets:N26:Main:balance  -0.01 EUR
+  Assets:N26:Main           0.01 EUR
+
+2024-04-07 * "DECIMAL AMOUNT" "Precise amount"
+  Assets:N26:Main:balance  -123.45 EUR
+  Assets:N26:Main           123.45 EUR
+
+2024-04-08 * "ROUND AMOUNT" "Even amount"
+  Assets:N26:Main:balance  -100.00 EUR
+  Assets:N26:Main           100.00 EUR
+
+2024-04-09 * "EMPTY REFERENCE" ""
+  Assets:N26:Main:balance  -25.00 EUR
+  Assets:N26:Main           25.00 EUR
+
+2024-04-10 * "LONG REFERENCE" "This is a very long payment reference that might exceed normal field lengths and contain multiple sentences with various punctuation marks like commas, semicolons, and periods. It could also include numbers like 123 and special characters like @#$%^&*()"
+  Assets:N26:Main:balance  -50.00 EUR
+  Assets:N26:Main           50.00 EUR
