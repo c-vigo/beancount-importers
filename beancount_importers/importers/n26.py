@@ -35,7 +35,9 @@ class Importer(beangulp.Importer):
     def account(self, _: str | None = None) -> data.Account:
         return self._account
 
-    def extract(self, filepath: str | Any, existing: data.Entries) -> data.Entries:
+    def extract(
+        self, filepath: str | Any, existing_entries: data.Entries = None
+    ) -> data.Entries:
         # Handle both string filepaths and _FileMemo objects from beancount-import
         if hasattr(filepath, "filepath"):
             path = filepath.filepath
@@ -43,6 +45,10 @@ class Importer(beangulp.Importer):
             path = str(filepath)
 
         entries = []
+
+        # Handle None existing_entries
+        if existing_entries is None:
+            existing_entries = []
 
         with open(path, encoding="utf8") as csvfile:
             reader = csv.DictReader(csvfile)
