@@ -2,6 +2,7 @@
 
 import os
 import tempfile
+from collections.abc import Generator
 from datetime import date
 from pathlib import Path
 
@@ -27,6 +28,21 @@ class TestCertoOneImporter:
         if not os.path.exists(pdf_path):
             pytest.skip(f"Sample PDF file not found: {pdf_path}")
         return pdf_path
+
+    @pytest.fixture  # type: ignore[misc]
+    def csv_cleanup(self, sample_pdf_file: str) -> Generator[None, None, None]:
+        """Cleanup fixture for CSV files created by tests."""
+        csv_file = Path(sample_pdf_file).with_suffix(".csv")
+
+        # Clean up any existing CSV file before test
+        if csv_file.exists():
+            csv_file.unlink()
+
+        yield  # Run the test
+
+        # Clean up CSV file after test
+        if csv_file.exists():
+            csv_file.unlink()
 
     def test_importer_initialization(self, importer: Importer) -> None:
         """Test importer initialization."""
@@ -69,7 +85,7 @@ class TestCertoOneImporter:
         assert importer.identify(MockFileMemo1("other_bank.pdf")) is False
 
     def test_extract_with_filememo_object(
-        self, importer: Importer, sample_pdf_file: str
+        self, importer: Importer, sample_pdf_file: str, csv_cleanup: None
     ) -> None:
         """Test extraction with _FileMemo-like objects."""
 
@@ -100,7 +116,7 @@ class TestCertoOneImporter:
         assert len(entries4) == len(entries1)
 
     def test_extract_with_none_existing_entries(
-        self, importer: Importer, sample_pdf_file: str
+        self, importer: Importer, sample_pdf_file: str, csv_cleanup: None
     ) -> None:
         """Test extraction with None existing_entries."""
         # Test that None existing_entries is handled correctly
@@ -116,7 +132,7 @@ class TestCertoOneImporter:
         assert importer.account("any_file.pdf") == "Assets:CertoOne:Main"
 
     def test_extract_basic_transaction(
-        self, importer: Importer, sample_pdf_file: str
+        self, importer: Importer, sample_pdf_file: str, csv_cleanup: None
     ) -> None:
         """Test extraction of a basic transaction."""
         entries = importer.extract(sample_pdf_file, [])
@@ -137,7 +153,7 @@ class TestCertoOneImporter:
         assert posting.units == amount.Amount(D("206.85"), "CHF")
 
     def test_extract_debit_transaction(
-        self, importer: Importer, sample_pdf_file: str
+        self, importer: Importer, sample_pdf_file: str, csv_cleanup: None
     ) -> None:
         """Test extraction of a debit transaction."""
         entries = importer.extract(sample_pdf_file, [])
@@ -163,7 +179,7 @@ class TestCertoOneImporter:
         assert posting.units == amount.Amount(D("-121.58"), "CHF")
 
     def test_extract_balance_entry(
-        self, importer: Importer, sample_pdf_file: str
+        self, importer: Importer, sample_pdf_file: str, csv_cleanup: None
     ) -> None:
         """Test extraction of balance entry."""
         entries = importer.extract(sample_pdf_file, [])
@@ -181,7 +197,7 @@ class TestCertoOneImporter:
         assert balance_entry.amount == amount.Amount(D("-540.15"), "CHF")
 
     def test_extract_special_characters(
-        self, importer: Importer, sample_pdf_file: str
+        self, importer: Importer, sample_pdf_file: str, csv_cleanup: None
     ) -> None:
         """Test extraction with special characters."""
         entries = importer.extract(sample_pdf_file, [])
@@ -197,7 +213,7 @@ class TestCertoOneImporter:
         assert "ETH-Hö" in special_entry.narration
 
     def test_extract_foreign_currency(
-        self, importer: Importer, sample_pdf_file: str
+        self, importer: Importer, sample_pdf_file: str, csv_cleanup: None
     ) -> None:
         """Test extraction of foreign currency transaction."""
         entries = importer.extract(sample_pdf_file, [])
@@ -218,7 +234,7 @@ class TestCertoOneImporter:
         assert posting.units.currency == "CHF"
 
     def test_extract_rounding_correction(
-        self, importer: Importer, sample_pdf_file: str
+        self, importer: Importer, sample_pdf_file: str, csv_cleanup: None
     ) -> None:
         """Test extraction of rounding correction."""
         entries = importer.extract(sample_pdf_file, [])
@@ -241,7 +257,9 @@ class TestCertoOneImporter:
         posting = rounding_entry.postings[0]
         assert posting.units == amount.Amount(D("-0.02"), "CHF")
 
-    def test_extract_metadata(self, importer: Importer, sample_pdf_file: str) -> None:
+    def test_extract_metadata(
+        self, importer: Importer, sample_pdf_file: str, csv_cleanup: None
+    ) -> None:
         """Test that metadata is properly set."""
         entries = importer.extract(sample_pdf_file, [])
 
@@ -250,7 +268,7 @@ class TestCertoOneImporter:
             assert entry.meta["lineno"] == 0  # All entries use lineno 0
 
     def test_extract_with_existing_entries(
-        self, importer: Importer, sample_pdf_file: str
+        self, importer: Importer, sample_pdf_file: str, csv_cleanup: None
     ) -> None:
         """Test extraction with existing entries."""
         existing_entries = [
@@ -283,12 +301,14 @@ class TestCertoOnePDFParsing:
     def test_parse_pdf_to_csv(self) -> None:
         """Test PDF to CSV conversion."""
         pdf_file = "tests/data/CertoOne_Sample.pdf"
-        csv_file = "tests/data/CertoOne_Sample_Test.csv"
 
         if not os.path.exists(pdf_file):
             pytest.skip(f"Sample PDF file not found: {pdf_file}")
 
-        try:
+        # Use temporary directory for CSV file
+        with tempfile.TemporaryDirectory() as temp_dir:
+            csv_file = os.path.join(temp_dir, "CertoOne_Sample_Test.csv")
+
             # Parse PDF to CSV
             parse_pdf_to_csv(pdf_file, csv_file)
 
@@ -326,34 +346,107 @@ class TestCertoOnePDFParsing:
                 except ValueError:
                     pytest.fail(f"Invalid amount: {parts[1]}")
 
-        finally:
-            # Clean up test CSV file
-            if os.path.exists(csv_file):
-                os.unlink(csv_file)
-
     def test_parse_pdf_nonexistent_file(self) -> None:
         """Test PDF parsing with nonexistent file."""
-        csv_file = "tests/data/Nonexistent_Test.csv"
+        # Use temporary directory for CSV file
+        with tempfile.TemporaryDirectory() as temp_dir:
+            csv_file = os.path.join(temp_dir, "Nonexistent_Test.csv")
 
-        with pytest.raises(FileNotFoundError):
-            parse_pdf_to_csv("nonexistent.pdf", csv_file)
+            with pytest.raises(FileNotFoundError):
+                parse_pdf_to_csv("nonexistent.pdf", csv_file)
+
+    def test_parse_pdf_camelot_bbox_error(self) -> None:
+        """Test PDF parsing with specific bbox unpacking TypeError."""
+        # This test simulates the specific error:
+        # "cannot unpack non-iterable NoneType object"
+        # from camelot's bbox_from_textlines function
+
+        # Create a PDF that might cause the bbox unpacking error
+        # by mocking camelot to raise the specific TypeError
+        import unittest.mock
+
+        with unittest.mock.patch("camelot.read_pdf") as mock_camelot:
+            # Simulate the specific TypeError that occurs in bbox_from_textlines
+            mock_camelot.side_effect = TypeError(
+                "cannot unpack non-iterable NoneType object"
+            )
+
+            # Use temporary directory for CSV file
+            with tempfile.TemporaryDirectory() as temp_dir:
+                csv_file = os.path.join(temp_dir, "BboxError_Test.csv")
+
+                # This should raise the TypeError from camelot
+                with pytest.raises(
+                    TypeError, match="cannot unpack non-iterable NoneType object"
+                ):
+                    parse_pdf_to_csv("tests/data/CertoOne_Sample.pdf", csv_file)
+
+    def test_parse_pdf_camelot_typeerror(self) -> None:
+        """Test PDF parsing with TypeError from camelot (bbox unpacking issue)."""
+        # Create a PDF that might cause the bbox unpacking error
+        # This simulates a PDF with table structure that causes camelot to fail
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_pdf = os.path.join(temp_dir, "temp.pdf")
+
+            with open(temp_pdf, "wb") as f:
+                # Create a minimal PDF that might trigger the error
+                f.write(b"%PDF-1.4\n")
+                f.write(b"1 0 obj\n")
+                f.write(b"<<\n")
+                f.write(b"/Type /Catalog\n")
+                f.write(b"/Pages 2 0 R\n")
+                f.write(b">>\n")
+                f.write(b"endobj\n")
+                f.write(b"2 0 obj\n")
+                f.write(b"<<\n")
+                f.write(b"/Type /Pages\n")
+                f.write(b"/Kids [3 0 R]\n")
+                f.write(b"/Count 1\n")
+                f.write(b">>\n")
+                f.write(b"endobj\n")
+                f.write(b"3 0 obj\n")
+                f.write(b"<<\n")
+                f.write(b"/Type /Page\n")
+                f.write(b"/Parent 2 0 R\n")
+                f.write(b"/MediaBox [0 0 612 792]\n")
+                f.write(b">>\n")
+                f.write(b"endobj\n")
+                f.write(b"xref\n")
+                f.write(b"0 4\n")
+                f.write(b"0000000000 65535 f \n")
+                f.write(b"0000000009 00000 n \n")
+                f.write(b"0000000058 00000 n \n")
+                f.write(b"0000000115 00000 n \n")
+                f.write(b"trailer\n")
+                f.write(b"<<\n")
+                f.write(b"/Size 4\n")
+                f.write(b"/Root 1 0 R\n")
+                f.write(b">>\n")
+                f.write(b"startxref\n")
+                f.write(b"174\n")
+                f.write(b"%%EOF\n")
+
+            csv_file = os.path.join(temp_dir, "CamelotError_Test.csv")
+
+            # This should now handle the error gracefully instead of crashing
+            with pytest.raises((ValueError, RuntimeError)):
+                parse_pdf_to_csv(temp_pdf, csv_file)
 
     def test_parse_pdf_invalid_file(self) -> None:
         """Test PDF parsing with invalid file."""
-        csv_file = "tests/data/Invalid_Test.csv"
+        # Use temporary directory for files
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_pdf = os.path.join(temp_dir, "invalid.pdf")
+            csv_file = os.path.join(temp_dir, "Invalid_Test.csv")
 
-        # Create a temporary invalid PDF file
-        with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as f:
-            f.write(b"Not a PDF file")
-            temp_pdf = f.name
+            # Create a temporary invalid PDF file
+            with open(temp_pdf, "wb") as f:
+                f.write(b"Not a PDF file")
 
-        try:
             with pytest.raises(
                 (FileNotFoundError, ValueError, RuntimeError, Exception)
             ):
                 parse_pdf_to_csv(temp_pdf, csv_file)
-        finally:
-            os.unlink(temp_pdf)
 
 
 class TestCertoOneImporterIntegration:
@@ -367,82 +460,115 @@ class TestCertoOneImporterIntegration:
     def test_extract_from_real_pdf_file(self, importer: Importer) -> None:
         """Test extraction from a real PDF file in the test data."""
         pdf_file = "tests/data/CertoOne_Sample.pdf"
-
-        if not os.path.exists(pdf_file):
-            pytest.skip(f"Test file {pdf_file} not found")
-
-        entries = importer.extract(pdf_file, [])
-
-        # Should extract all transactions from the file
-        assert len(entries) > 0
-
-        # Should have one balance entry
-        balance_entries = [e for e in entries if isinstance(e, data.Balance)]
-        assert len(balance_entries) == 1
-
-        # All other entries should be transactions
-        transaction_entries = [e for e in entries if isinstance(e, data.Transaction)]
-        assert len(transaction_entries) == 20
-
-        # All entries should have the correct account
-        for entry in entries:
-            if isinstance(entry, data.Balance):
-                assert entry.account == "Assets:CertoOne:Main"
-            else:
-                assert any(
-                    posting.account == "Assets:CertoOne:Main"
-                    for posting in entry.postings
-                )
-
-    def test_csv_file_reuse(self, importer: Importer) -> None:
-        """Test that CSV file is reused if it already exists."""
-        pdf_file = "tests/data/CertoOne_Sample.pdf"
         csv_file = Path(pdf_file).with_suffix(".csv")
 
         if not os.path.exists(pdf_file):
             pytest.skip(f"Test file {pdf_file} not found")
 
-        # First extraction
-        entries1 = importer.extract(pdf_file, [])
-        assert len(entries1) > 0
+        # Clean up any existing CSV file first
+        if csv_file.exists():
+            csv_file.unlink()
 
-        # Check that CSV file was created
-        assert csv_file.exists()
+        try:
+            entries = importer.extract(pdf_file, [])
 
-        # Get modification time
-        mtime1 = csv_file.stat().st_mtime
+            # Should extract all transactions from the file
+            assert len(entries) > 0
 
-        # Second extraction should reuse CSV file
-        entries2 = importer.extract(pdf_file, [])
-        assert len(entries2) == len(entries1)
+            # Should have one balance entry
+            balance_entries = [e for e in entries if isinstance(e, data.Balance)]
+            assert len(balance_entries) == 1
 
-        # CSV file should not have been modified
-        mtime2 = csv_file.stat().st_mtime
-        assert mtime1 == mtime2
+            # All other entries should be transactions
+            transaction_entries = [
+                e for e in entries if isinstance(e, data.Transaction)
+            ]
+            assert len(transaction_entries) == 20
+
+            # All entries should have the correct account
+            for entry in entries:
+                if isinstance(entry, data.Balance):
+                    assert entry.account == "Assets:CertoOne:Main"
+                else:
+                    assert any(
+                        posting.account == "Assets:CertoOne:Main"
+                        for posting in entry.postings
+                    )
+        finally:
+            # Clean up the CSV file after test
+            if csv_file.exists():
+                csv_file.unlink()
+
+    def test_csv_file_reuse(self, importer: Importer) -> None:
+        """Test that CSV file is reused if it already exists."""
+        pdf_file = "tests/data/CertoOne_Sample.pdf"
+
+        if not os.path.exists(pdf_file):
+            pytest.skip(f"Test file {pdf_file} not found")
+
+        # The importer creates CSV file next to the PDF file
+        csv_file = Path(pdf_file).with_suffix(".csv")
+
+        # Clean up any existing CSV file first
+        if csv_file.exists():
+            csv_file.unlink()
+
+        try:
+            # First extraction
+            entries1 = importer.extract(pdf_file, [])
+            assert len(entries1) > 0
+
+            # Check that CSV file was created
+            assert csv_file.exists()
+
+            # Get modification time
+            mtime1 = csv_file.stat().st_mtime
+
+            # Second extraction should reuse CSV file
+            entries2 = importer.extract(pdf_file, [])
+            assert len(entries2) == len(entries1)
+
+            # CSV file should not have been modified
+            mtime2 = csv_file.stat().st_mtime
+            assert mtime1 == mtime2
+        finally:
+            # Clean up the CSV file after test
+            if csv_file.exists():
+                csv_file.unlink()
 
     def test_compare_with_expected_structure(self, importer: Importer) -> None:
         """Test that extracted entries match expected structure."""
         pdf_file = "tests/data/CertoOne_Sample.pdf"
+        csv_file = Path(pdf_file).with_suffix(".csv")
 
         if not os.path.exists(pdf_file):
             pytest.skip("Test file not found")
 
-        # Extract entries from PDF
-        entries = importer.extract(pdf_file, [])
-        assert len(entries) > 0
+        # Clean up any existing CSV file first
+        if csv_file.exists():
+            csv_file.unlink()
 
-        # Basic validation that entries have expected structure
-        for entry in entries:
-            assert hasattr(entry, "date")
-            assert hasattr(entry, "meta")
-            assert entry.meta["filename"] == pdf_file
+        try:
+            # Extract entries from PDF
+            entries = importer.extract(pdf_file, [])
+            assert len(entries) > 0
 
-            if isinstance(entry, data.Balance):
-                assert hasattr(entry, "account")
-                assert hasattr(entry, "amount")
-            elif isinstance(entry, data.Transaction):
-                assert hasattr(entry, "postings")
-                assert len(entry.postings) >= 1
+            # Basic validation that entries have expected structure
+            for entry in entries:
+                assert hasattr(entry, "date")
+                assert hasattr(entry, "meta")
+                assert entry.meta["filename"] == pdf_file
+
+                if isinstance(entry, data.Balance):
+                    assert hasattr(entry, "account")
+                    assert hasattr(entry, "amount")
+                elif isinstance(entry, data.Transaction):
+                    assert hasattr(entry, "postings")
+                    assert len(entry.postings) >= 1
+        finally:
+            # Clean up the CSV file after test
+            if csv_file.exists():
+                csv_file.unlink()
 
 
 class TestCertoOneImporterEdgeCases:
@@ -460,59 +586,81 @@ class TestCertoOneImporterEdgeCases:
 
     def test_extract_invalid_pdf_file(self, importer: Importer) -> None:
         """Test extraction from invalid PDF file."""
-        # Create a temporary invalid PDF file
-        with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as f:
-            f.write(b"Not a PDF file")
-            temp_pdf = f.name
+        # Use temporary directory for invalid PDF file
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_pdf = os.path.join(temp_dir, "invalid.pdf")
 
-        try:
+            # Create a temporary invalid PDF file
+            with open(temp_pdf, "wb") as f:
+                f.write(b"Not a PDF file")
+
             with pytest.raises(
                 (FileNotFoundError, ValueError, RuntimeError, Exception)
             ):
                 importer.extract(temp_pdf, [])
-        finally:
-            os.unlink(temp_pdf)
 
     def test_extract_with_different_file_patterns(self, importer: Importer) -> None:
         """Test extraction with different file patterns."""
         pdf_file = "tests/data/CertoOne_Sample.pdf"
+        csv_file = Path(pdf_file).with_suffix(".csv")
 
         if not os.path.exists(pdf_file):
             pytest.skip(f"Test file {pdf_file} not found")
 
-        # Test with different importer patterns
-        patterns = [
-            r"CertoOne.*\.pdf$",
-            r".*CertoOne.*\.pdf$",
-            r"CertoOne.*",
-        ]
+        # Clean up any existing CSV file first
+        if csv_file.exists():
+            csv_file.unlink()
 
-        for pattern in patterns:
-            test_importer = Importer(pattern, "Assets:CertoOne:Main")
-            entries = test_importer.extract(pdf_file, [])
-            assert len(entries) > 0
+        try:
+            # Test with different importer patterns
+            patterns = [
+                r"CertoOne.*\.pdf$",
+                r".*CertoOne.*\.pdf$",
+                r"CertoOne.*",
+            ]
+
+            for pattern in patterns:
+                test_importer = Importer(pattern, "Assets:CertoOne:Main")
+                entries = test_importer.extract(pdf_file, [])
+                assert len(entries) > 0
+        finally:
+            # Clean up the CSV file after test
+            if csv_file.exists():
+                csv_file.unlink()
 
     def test_extract_with_different_accounts(self, importer: Importer) -> None:
         """Test extraction with different account names."""
         pdf_file = "tests/data/CertoOne_Sample.pdf"
+        csv_file = Path(pdf_file).with_suffix(".csv")
 
         if not os.path.exists(pdf_file):
             pytest.skip(f"Test file {pdf_file} not found")
 
-        # Test with different account names
-        accounts = [
-            "Assets:CertoOne:Main",
-            "Assets:CertoOne:Checking",
-            "Assets:CertoOne",
-        ]
+        # Clean up any existing CSV file first
+        if csv_file.exists():
+            csv_file.unlink()
 
-        for account in accounts:
-            test_importer = Importer(r"CertoOne.*\.pdf$", account)
-            entries = test_importer.extract(pdf_file, [])
+        try:
+            # Test with different account names
+            accounts = [
+                "Assets:CertoOne:Main",
+                "Assets:CertoOne:Checking",
+                "Assets:CertoOne",
+            ]
 
-            # Check that all entries use the correct account
-            for entry in entries:
-                if isinstance(entry, data.Balance):
-                    assert entry.account == account
-                else:
-                    assert all(posting.account == account for posting in entry.postings)
+            for account in accounts:
+                test_importer = Importer(r"CertoOne.*\.pdf$", account)
+                entries = test_importer.extract(pdf_file, [])
+
+                # Check that all entries use the correct account
+                for entry in entries:
+                    if isinstance(entry, data.Balance):
+                        assert entry.account == account
+                    else:
+                        assert all(
+                            posting.account == account for posting in entry.postings
+                        )
+        finally:
+            # Clean up the CSV file after test
+            if csv_file.exists():
+                csv_file.unlink()
