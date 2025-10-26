@@ -48,6 +48,22 @@ class TestN26ImporterSimple:
         assert importer.identify("N26.txt") is False
         assert importer.identify("transactions.csv") is False
 
+    def test_identify_with_filememo_object(self, importer: n26_importer) -> None:
+        """Test file identification with _FileMemo-like object."""
+
+        # Mock a _FileMemo-like object
+        class MockFileMemo:
+            def __init__(self, filepath: str):
+                self.filepath = filepath
+
+        # Test with _FileMemo-like object
+        assert importer.identify(MockFileMemo("N26_Transactions_2024.csv")) is True
+        assert (
+            importer.identify(MockFileMemo("2024-12-31-N26_Transactions.csv")) is True
+        )
+        assert importer.identify(MockFileMemo("n26_transactions.csv")) is False
+        assert importer.identify(MockFileMemo("other_bank.csv")) is False
+
     def test_name(self, importer: n26_importer) -> None:
         """Test importer name."""
         assert "Assets:N26:Main" in importer.name()

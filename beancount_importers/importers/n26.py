@@ -1,5 +1,6 @@
 import csv
 import re
+from typing import Any
 
 import beangulp
 from beancount.core import amount, data
@@ -20,8 +21,13 @@ class Importer(beangulp.Importer):
         self._filepattern = filepattern
         self._account = account
 
-    def identify(self, filepath: str) -> bool:
-        return re.search(self._filepattern, filepath) is not None
+    def identify(self, filepath: str | Any) -> bool:
+        # Handle both string filepaths and _FileMemo objects from beancount-import
+        if hasattr(filepath, "filepath"):
+            path = filepath.filepath
+        else:
+            path = str(filepath)
+        return re.search(self._filepattern, path) is not None
 
     def name(self) -> str:
         return str(super().name + self.account())
@@ -29,17 +35,23 @@ class Importer(beangulp.Importer):
     def account(self, _: str | None = None) -> data.Account:
         return self._account
 
-    def extract(self, filepath: str, existing: data.Entries) -> data.Entries:
+    def extract(self, filepath: str | Any, existing: data.Entries) -> data.Entries:
+        # Handle both string filepaths and _FileMemo objects from beancount-import
+        if hasattr(filepath, "filepath"):
+            path = filepath.filepath
+        else:
+            path = str(filepath)
+
         entries = []
 
-        with open(filepath, encoding="utf8") as csvfile:
+        with open(path, encoding="utf8") as csvfile:
             reader = csv.DictReader(csvfile)
             rows = list(reader)
 
         for index, row in enumerate(rows):
             try:
                 # Parse transaction
-                meta = data.new_metadata(filepath, index)
+                meta = data.new_metadata(path, index)
                 book_date = parse(row["Booking Date"].strip()).date()
                 payee = row["Partner Name"].strip()
                 description = (
