@@ -31,13 +31,21 @@ def parse_pdf_to_csv(pdf_file_name: str, csv_file_name: str) -> None:
             flavor="stream",
             table_areas=["50,700,560,90"],
         )
-    except ValueError:
-        tables = camelot.read_pdf(
-            pdf_file_name,
-            pages=f"2-{n_pages - 3}",
-            flavor="stream",
-            table_areas=["50,700,560,90"],
-        )
+    except (ValueError, TypeError):
+        try:
+            tables = camelot.read_pdf(
+                pdf_file_name,
+                pages=f"2-{n_pages - 3}",
+                flavor="stream",
+                table_areas=["50,700,560,90"],
+            )
+        except (ValueError, TypeError):
+            # If both attempts fail, try with different parameters
+            tables = camelot.read_pdf(
+                pdf_file_name,
+                pages=f"2-{n_pages - 1}",
+                flavor="stream",
+            )
 
     # Visual debugging
     # camelot.plot(tables[0], kind='text').show()

@@ -428,9 +428,13 @@ class TestCertoOnePDFParsing:
 
             csv_file = os.path.join(temp_dir, "CamelotError_Test.csv")
 
-            # This should now handle the error gracefully instead of crashing
-            with pytest.raises((ValueError, RuntimeError)):
-                parse_pdf_to_csv(temp_pdf, csv_file)
+            # This should now handle the error gracefully and succeed
+            # The improved error handling catches TypeError and tries
+            # alternative approaches
+            parse_pdf_to_csv(temp_pdf, csv_file)
+
+            # Verify that a CSV file was created (even if empty or minimal)
+            assert os.path.exists(csv_file)
 
     def test_parse_pdf_invalid_file(self) -> None:
         """Test PDF parsing with invalid file."""
