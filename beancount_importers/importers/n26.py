@@ -25,6 +25,10 @@ class Importer(beangulp.Importer):
         # Handle both string filepaths and _FileMemo objects from beancount-import
         if hasattr(filepath, "filepath"):
             path = filepath.filepath
+        elif hasattr(filepath, "name"):
+            path = filepath.name
+        elif hasattr(filepath, "filename"):
+            path = filepath.filename
         else:
             path = str(filepath)
         return re.search(self._filepattern, path) is not None
@@ -41,6 +45,10 @@ class Importer(beangulp.Importer):
         # Handle both string filepaths and _FileMemo objects from beancount-import
         if hasattr(filepath, "filepath"):
             path = filepath.filepath
+        elif hasattr(filepath, "name"):
+            path = filepath.name
+        elif hasattr(filepath, "filename"):
+            path = filepath.filename
         else:
             path = str(filepath)
 

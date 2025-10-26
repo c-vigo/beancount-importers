@@ -49,20 +49,67 @@ class TestN26ImporterSimple:
         assert importer.identify("transactions.csv") is False
 
     def test_identify_with_filememo_object(self, importer: n26_importer) -> None:
-        """Test file identification with _FileMemo-like object."""
+        """Test file identification with _FileMemo-like objects."""
 
-        # Mock a _FileMemo-like object
-        class MockFileMemo:
+        # Mock different types of _FileMemo-like objects
+        class MockFileMemo1:
             def __init__(self, filepath: str):
                 self.filepath = filepath
 
-        # Test with _FileMemo-like object
-        assert importer.identify(MockFileMemo("N26_Transactions_2024.csv")) is True
+        class MockFileMemo2:
+            def __init__(self, name: str):
+                self.name = name
+
+        class MockFileMemo3:
+            def __init__(self, filename: str):
+                self.filename = filename
+
+        # Test with different _FileMemo-like objects
+        assert importer.identify(MockFileMemo1("N26_Transactions_2024.csv")) is True
         assert (
-            importer.identify(MockFileMemo("2024-12-31-N26_Transactions.csv")) is True
+            importer.identify(MockFileMemo2("2024-12-31-N26_Transactions.csv")) is True
         )
-        assert importer.identify(MockFileMemo("n26_transactions.csv")) is False
-        assert importer.identify(MockFileMemo("other_bank.csv")) is False
+        assert importer.identify(MockFileMemo3("n26_transactions.csv")) is False
+        assert importer.identify(MockFileMemo1("other_bank.csv")) is False
+
+    def test_extract_with_filememo_object(
+        self, importer: n26_importer, sample_csv_file: str
+    ) -> None:
+        """Test extraction with _FileMemo-like objects."""
+
+        # Mock different types of _FileMemo-like objects
+        class MockFileMemo1:
+            def __init__(self, filepath: str):
+                self.filepath = filepath
+
+        class MockFileMemo2:
+            def __init__(self, name: str):
+                self.name = name
+
+        class MockFileMemo3:
+            def __init__(self, filename: str):
+                self.filename = filename
+
+        # Test extraction with different _FileMemo-like objects
+        entries1 = importer.extract(MockFileMemo1(sample_csv_file), [])
+        entries2 = importer.extract(MockFileMemo2(sample_csv_file), [])
+        entries3 = importer.extract(MockFileMemo3(sample_csv_file), [])
+
+        # All should produce the same number of entries
+        assert len(entries1) == len(entries2) == len(entries3)
+        assert len(entries1) > 0  # Should have some entries
+
+        # Test with existing_entries keyword argument
+        entries4 = importer.extract(MockFileMemo1(sample_csv_file), existing_entries=[])
+        assert len(entries4) == len(entries1)
+
+    def test_extract_with_none_existing_entries(
+        self, importer: n26_importer, sample_csv_file: str
+    ) -> None:
+        """Test extraction with None existing_entries."""
+        # Test that None existing_entries is handled correctly
+        entries = importer.extract(sample_csv_file, existing_entries=None)
+        assert len(entries) > 0
 
     def test_name(self, importer: n26_importer) -> None:
         """Test importer name."""
