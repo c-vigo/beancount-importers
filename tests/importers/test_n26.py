@@ -8,12 +8,12 @@ import pytest
 from beancount.core import amount, data
 from beancount.core.number import D
 
-from beancount_importers.importers.n26 import Importer
+from beancount_importers.importers import n26_importer
 
 
 def create_test_csv_content() -> str:
     """Create minimal test CSV content for failure cases."""
-    return Importer.CSV_HEADER + (
+    return n26_importer.CSV_HEADER + (
         '2024-01-15,2024-01-15,"TEST",,Presentment,,"Main Account",-10.00,10.00,EUR,1\n'
     )
 
@@ -22,9 +22,9 @@ class TestN26ImporterSimple:
     """Simplified test cases for the N26 importer."""
 
     @pytest.fixture  # type: ignore[misc]
-    def importer(self) -> Importer:
+    def importer(self) -> n26_importer:
         """Create a test importer instance."""
-        return Importer(r"N26.*\.csv$", "Assets:N26:Main")
+        return n26_importer(r"N26.*\.csv$", "Assets:N26:Main")
 
     @pytest.fixture  # type: ignore[misc]
     def sample_csv_file(self) -> str:
@@ -34,12 +34,12 @@ class TestN26ImporterSimple:
             pytest.skip(f"Sample CSV file not found: {csv_path}")
         return csv_path
 
-    def test_importer_initialization(self, importer: Importer) -> None:
+    def test_importer_initialization(self, importer: n26_importer) -> None:
         """Test importer initialization."""
         assert importer._filepattern == r"N26.*\.csv$"
         assert importer._account == "Assets:N26:Main"
 
-    def test_identify_file_pattern(self, importer: Importer) -> None:
+    def test_identify_file_pattern(self, importer: n26_importer) -> None:
         """Test file identification."""
         assert importer.identify("N26_Transactions_2024.csv") is True
         assert importer.identify("2024-12-31-N26_Transactions.csv") is True
@@ -48,16 +48,16 @@ class TestN26ImporterSimple:
         assert importer.identify("N26.txt") is False
         assert importer.identify("transactions.csv") is False
 
-    def test_name(self, importer: Importer) -> None:
+    def test_name(self, importer: n26_importer) -> None:
         """Test importer name."""
         assert "Assets:N26:Main" in importer.name()
 
-    def test_account(self, importer: Importer) -> None:
+    def test_account(self, importer: n26_importer) -> None:
         """Test account method."""
         assert importer.account("any_file.csv") == "Assets:N26:Main"
 
     def test_extract_basic_transaction(
-        self, importer: Importer, sample_csv_file: str
+        self, importer: n26_importer, sample_csv_file: str
     ) -> None:
         """Test extraction of a basic transaction."""
         entries = importer.extract(sample_csv_file, [])
@@ -83,7 +83,7 @@ class TestN26ImporterSimple:
         assert balance_posting.units == amount.Amount(D("4.50"), "EUR")
 
     def test_extract_credit_transfer(
-        self, importer: Importer, sample_csv_file: str
+        self, importer: n26_importer, sample_csv_file: str
     ) -> None:
         """Test extraction of credit transfer."""
         entries = importer.extract(sample_csv_file, [])
@@ -111,7 +111,7 @@ class TestN26ImporterSimple:
         assert balance_posting.units == amount.Amount(D("-2500.00"), "EUR")
 
     def test_extract_debit_transfer(
-        self, importer: Importer, sample_csv_file: str
+        self, importer: n26_importer, sample_csv_file: str
     ) -> None:
         """Test extraction of debit transfer."""
         entries = importer.extract(sample_csv_file, [])
@@ -139,7 +139,7 @@ class TestN26ImporterSimple:
         assert balance_posting.units == amount.Amount(D("800.00"), "EUR")
 
     def test_extract_foreign_currency(
-        self, importer: Importer, sample_csv_file: str
+        self, importer: n26_importer, sample_csv_file: str
     ) -> None:
         """Test extraction of foreign currency transaction."""
         entries = importer.extract(sample_csv_file, [])
@@ -167,7 +167,7 @@ class TestN26ImporterSimple:
         assert balance_posting.units == amount.Amount(D("54.11"), "EUR")
 
     def test_extract_special_characters(
-        self, importer: Importer, sample_csv_file: str
+        self, importer: n26_importer, sample_csv_file: str
     ) -> None:
         """Test extraction with special characters."""
         entries = importer.extract(sample_csv_file, [])
@@ -183,7 +183,7 @@ class TestN26ImporterSimple:
         assert special_entry.payee == "SPECIAL CHARS & CO"
         assert special_entry.narration == "Test: áéíóú ñ ç ß € £ ¥"
 
-    def test_extract_emoji(self, importer: Importer, sample_csv_file: str) -> None:
+    def test_extract_emoji(self, importer: n26_importer, sample_csv_file: str) -> None:
         """Test extraction with emojis."""
         entries = importer.extract(sample_csv_file, [])
 
@@ -199,7 +199,7 @@ class TestN26ImporterSimple:
         assert "🎉" in emoji_entry.narration
 
     def test_extract_zero_amount(
-        self, importer: Importer, sample_csv_file: str
+        self, importer: n26_importer, sample_csv_file: str
     ) -> None:
         """Test extraction of zero amount transaction."""
         entries = importer.extract(sample_csv_file, [])
@@ -221,7 +221,7 @@ class TestN26ImporterSimple:
         assert main_posting.units == amount.Amount(D("0.00"), "EUR")
 
     def test_extract_empty_reference(
-        self, importer: Importer, sample_csv_file: str
+        self, importer: n26_importer, sample_csv_file: str
     ) -> None:
         """Test extraction with empty payment reference."""
         entries = importer.extract(sample_csv_file, [])
@@ -237,7 +237,7 @@ class TestN26ImporterSimple:
         assert empty_ref_entry.narration == ""
 
     def test_extract_unicode_characters(
-        self, importer: Importer, sample_csv_file: str
+        self, importer: n26_importer, sample_csv_file: str
     ) -> None:
         """Test extraction with Unicode characters."""
         entries = importer.extract(sample_csv_file, [])
@@ -253,7 +253,7 @@ class TestN26ImporterSimple:
         assert "Coffee & croissant" in unicode_entry.narration
 
     def test_extract_very_large_amounts(
-        self, importer: Importer, sample_csv_file: str
+        self, importer: n26_importer, sample_csv_file: str
     ) -> None:
         """Test extraction with very large amounts."""
         entries = importer.extract(sample_csv_file, [])
@@ -272,7 +272,7 @@ class TestN26ImporterSimple:
         assert main_posting.units.number == D("-9999.99")
 
     def test_extract_very_small_amounts(
-        self, importer: Importer, sample_csv_file: str
+        self, importer: n26_importer, sample_csv_file: str
     ) -> None:
         """Test extraction with very small amounts."""
         entries = importer.extract(sample_csv_file, [])
@@ -290,7 +290,9 @@ class TestN26ImporterSimple:
         main_posting = small_entry.postings[0]
         assert main_posting.units.number == D("-0.01")
 
-    def test_extract_metadata(self, importer: Importer, sample_csv_file: str) -> None:
+    def test_extract_metadata(
+        self, importer: n26_importer, sample_csv_file: str
+    ) -> None:
         """Test that metadata is properly set."""
         entries = importer.extract(sample_csv_file, [])
 
@@ -299,7 +301,7 @@ class TestN26ImporterSimple:
             assert entry.meta["lineno"] == i  # importer uses 0-based index
 
     def test_extract_with_existing_entries(
-        self, importer: Importer, sample_csv_file: str
+        self, importer: n26_importer, sample_csv_file: str
     ) -> None:
         """Test extraction with existing entries."""
         existing_entries = [
@@ -321,7 +323,7 @@ class TestN26ImporterSimple:
         assert len(entries) == 87
         assert all(entry.payee != "Existing Payee" for entry in entries)
 
-    def test_extract_invalid_csv(self, importer: Importer) -> None:
+    def test_extract_invalid_csv(self, importer: n26_importer) -> None:
         """Test extraction with invalid CSV content."""
         with tempfile.NamedTemporaryFile(
             mode="w", suffix=".csv", delete=False, encoding="utf-8"
@@ -336,7 +338,7 @@ class TestN26ImporterSimple:
         finally:
             os.unlink(temp_file)
 
-    def test_extract_missing_required_fields(self, importer: Importer) -> None:
+    def test_extract_missing_required_fields(self, importer: n26_importer) -> None:
         """Test extraction with missing required fields."""
         with tempfile.NamedTemporaryFile(
             mode="w", suffix=".csv", delete=False, encoding="utf-8"
@@ -351,7 +353,7 @@ class TestN26ImporterSimple:
         finally:
             os.unlink(temp_file)
 
-    def test_extract_invalid_date(self, importer: Importer) -> None:
+    def test_extract_invalid_date(self, importer: n26_importer) -> None:
         """Test extraction with invalid date."""
         with tempfile.NamedTemporaryFile(
             mode="w", suffix=".csv", delete=False, encoding="utf-8"
@@ -370,7 +372,7 @@ class TestN26ImporterSimple:
         finally:
             os.unlink(temp_file)
 
-    def test_extract_invalid_amount(self, importer: Importer) -> None:
+    def test_extract_invalid_amount(self, importer: n26_importer) -> None:
         """Test extraction with invalid amount."""
         with tempfile.NamedTemporaryFile(
             mode="w", suffix=".csv", delete=False, encoding="utf-8"
@@ -394,11 +396,11 @@ class TestN26ImporterIntegrationSimple:
     """Integration tests for the N26 importer with real CSV files."""
 
     @pytest.fixture  # type: ignore[misc]
-    def importer(self) -> Importer:
+    def importer(self) -> n26_importer:
         """Create a test importer instance."""
-        return Importer(r"N26.*\.csv$", "Assets:N26:Main")
+        return n26_importer(r"N26.*\.csv$", "Assets:N26:Main")
 
-    def test_extract_from_real_csv_file(self, importer: Importer) -> None:
+    def test_extract_from_real_csv_file(self, importer: n26_importer) -> None:
         """Test extraction from a real CSV file in the test data."""
         csv_file = "tests/data/N26_Sample.csv"
 
@@ -419,7 +421,7 @@ class TestN26ImporterIntegrationSimple:
                 posting.account == "Assets:N26:Main" for posting in entry.postings
             )
 
-    def test_extract_multiple_files(self, importer: Importer) -> None:
+    def test_extract_multiple_files(self, importer: n26_importer) -> None:
         """Test extraction from multiple CSV files."""
         csv_files = [
             "tests/data/N26_Sample.csv",
@@ -448,7 +450,7 @@ class TestN26ImporterIntegrationSimple:
             # Skip test if no files exist
             pytest.skip("No test CSV files found")
 
-    def test_compare_with_expected_journal(self, importer: Importer) -> None:
+    def test_compare_with_expected_journal(self, importer: n26_importer) -> None:
         """Test that extracted entries match expected journal format."""
         csv_file = "tests/data/N26_Sample.csv"
         journal_file = "tests/data/journal.beancount"
@@ -475,11 +477,11 @@ class TestN26ImporterEdgeCasesSimple:
     """Test edge cases and error handling for the N26 importer."""
 
     @pytest.fixture  # type: ignore[misc]
-    def importer(self) -> Importer:
+    def importer(self) -> n26_importer:
         """Create a test importer instance."""
-        return Importer(r"N26.*\.csv$", "Assets:N26:Main")
+        return n26_importer(r"N26.*\.csv$", "Assets:N26:Main")
 
-    def test_empty_csv_file(self, importer: Importer) -> None:
+    def test_empty_csv_file(self, importer: n26_importer) -> None:
         """Test extraction from empty CSV file."""
         with tempfile.NamedTemporaryFile(
             mode="w", suffix=".csv", delete=False, encoding="utf-8"
@@ -493,7 +495,7 @@ class TestN26ImporterEdgeCasesSimple:
         finally:
             os.unlink(temp_file)
 
-    def test_csv_with_only_header(self, importer: Importer) -> None:
+    def test_csv_with_only_header(self, importer: n26_importer) -> None:
         """Test extraction from CSV with only header row."""
         with tempfile.NamedTemporaryFile(
             mode="w", suffix=".csv", delete=False, encoding="utf-8"
@@ -512,7 +514,7 @@ class TestN26ImporterEdgeCasesSimple:
         finally:
             os.unlink(temp_file)
 
-    def test_csv_with_malformed_row(self, importer: Importer) -> None:
+    def test_csv_with_malformed_row(self, importer: n26_importer) -> None:
         """Test extraction with malformed CSV row."""
         with tempfile.NamedTemporaryFile(
             mode="w", suffix=".csv", delete=False, encoding="utf-8"
