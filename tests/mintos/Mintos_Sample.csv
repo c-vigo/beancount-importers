@@ -1,0 +1,16 @@
+TransactionID,DateInput,Details,Turnover,Balance,Date,Value,Type,Note
+1,2024-01-01,deposits,500.00,500.00,2024-01-01,500.00,Deposit,Initial deposit
+2,2024-01-15,loan - investment in loan,-100.00,400.00,2024-01-15,-100.00,Buy,Investment
+3,2024-02-01,interest received,5.00,405.00,2024-02-01,5.00,Dividend,Interest payment
+4,2024-02-15,late fees received,2.50,407.50,2024-02-15,2.50,Dividend,Late fee
+5,2024-03-01,delayed interest income,1.25,408.75,2024-03-01,1.25,Dividend,Delayed interest
+6,2024-03-15,principal received,50.00,458.75,2024-03-15,50.00,Sell,Principal return
+7,2024-04-01,refer a friend bonus,10.00,468.75,2024-04-01,10.00,Interest,Bonus
+8,2024-04-15,cashback bonus,5.00,473.75,2024-04-15,5.00,Interest,Cashback
+9,2024-05-01,loan - secondary market transaction,-75.00,398.75,2024-05-01,-75.00,Buy,Secondary market buy
+10,2024-05-15,loan - secondary market transaction,60.00,458.75,2024-05-15,60.00,Sell,Secondary market sell
+11,2024-06-01,loan - discount/premium for secondary market transaction,3.50,462.25,2024-06-01,3.50,Interest,Market premium
+12,2024-06-15,loan - secondary market fee,-1.50,460.75,2024-06-15,-1.50,Fees,Market fee
+13,2024-07-01,repurchase of small loan parts,25.00,485.75,2024-07-01,25.00,Repurchase,Small loan repurchase
+14,2024-07-15,deposit reversed,-2.00,483.75,2024-07-15,-2.00,Fees,Deposit reversal fee
+15,2024-08-01,withdrawal,-200.00,283.75,2024-08-01,-200.00,Removal,Withdrawal
