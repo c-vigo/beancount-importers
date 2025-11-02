@@ -1,0 +1,25 @@
+; -*- mode: beancount; coding: utf-8; fill-column: 400; -*-
+; Beancount file for N26 special characters and emoji tests
+; This file shows the expected output for test_extract_special_characters and test_extract_emoji
+
+option "title" "N26 Special Characters Test"
+option "operating_currency" "EUR"
+
+; Account definitions
+2024-01-01 open Assets:N26:Main EUR
+2024-01-01 open Assets:N26:Main:balance EUR
+
+; Special characters test
+2024-03-10 * "SPECIAL CHARS & CO" "Test: áéíóú ñ ç ß € £ ¥"
+  Assets:N26:Main:balance  -12.00 EUR
+  Assets:N26:Main           12.00 EUR
+
+; Emoji test
+2024-03-11 * "EMOJI STORE 🛍️" "Purchase with emojis 🎉"
+  Assets:N26:Main:balance  -4.00 EUR
+  Assets:N26:Main           4.00 EUR
+
+; Unicode characters test (Café Français)
+2024-01-26 * "Café Français" "Coffee & croissant"
+  Assets:N26:Main:balance  -8.50 EUR
+  Assets:N26:Main           8.50 EUR

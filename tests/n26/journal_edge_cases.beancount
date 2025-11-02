@@ -1,0 +1,29 @@
+; -*- mode: beancount; coding: utf-8; fill-column: 400; -*-
+; Beancount file for N26 edge case tests
+; This file shows the expected output for edge case tests (zero amount, large/small amounts, empty reference)
+
+option "title" "N26 Edge Cases Test"
+option "operating_currency" "EUR"
+
+; Account definitions
+2024-01-01 open Assets:N26:Main EUR
+2024-01-01 open Assets:N26:Main:balance EUR
+
+; Zero amount test
+2024-04-04 * "ZERO AMOUNT" "Free transaction"
+  Assets:N26:Main           0.00 EUR
+
+; Large amount test
+2024-04-05 * "LARGE AMOUNT" "Big purchase"
+  Assets:N26:Main:balance  -9999.99 EUR
+  Assets:N26:Main           9999.99 EUR
+
+; Small amount test
+2024-04-06 * "SMALL AMOUNT" "Tiny transaction"
+  Assets:N26:Main:balance  -0.01 EUR
+  Assets:N26:Main           0.01 EUR
+
+; Empty reference test
+2024-04-09 * "EMPTY REFERENCE" ""
+  Assets:N26:Main:balance  -25.00 EUR
+  Assets:N26:Main           25.00 EUR

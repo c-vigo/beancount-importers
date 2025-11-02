@@ -24,7 +24,7 @@ class TestCertoOneImporter:
     @pytest.fixture  # type: ignore[misc]
     def sample_pdf_file(self) -> str:
         """Get the path to the sample PDF file."""
-        pdf_path = "tests/data/CertoOne_Sample.pdf"
+        pdf_path = "tests/certo_one/CertoOne_Sample.pdf"
         if not os.path.exists(pdf_path):
             pytest.skip(f"Sample PDF file not found: {pdf_path}")
         return pdf_path
@@ -300,7 +300,7 @@ class TestCertoOnePDFParsing:
 
     def test_parse_pdf_to_csv(self) -> None:
         """Test PDF to CSV conversion."""
-        pdf_file = "tests/data/CertoOne_Sample.pdf"
+        pdf_file = "tests/certo_one/CertoOne_Sample.pdf"
 
         if not os.path.exists(pdf_file):
             pytest.skip(f"Sample PDF file not found: {pdf_file}")
@@ -379,7 +379,7 @@ class TestCertoOnePDFParsing:
                 with pytest.raises(
                     TypeError, match="cannot unpack non-iterable NoneType object"
                 ):
-                    parse_pdf_to_csv("tests/data/CertoOne_Sample.pdf", csv_file)
+                    parse_pdf_to_csv("tests/certo_one/CertoOne_Sample.pdf", csv_file)
 
     def test_parse_pdf_camelot_typeerror(self) -> None:
         """Test PDF parsing with TypeError from camelot (bbox unpacking issue)."""
@@ -463,7 +463,7 @@ class TestCertoOneImporterIntegration:
 
     def test_extract_from_real_pdf_file(self, importer: Importer) -> None:
         """Test extraction from a real PDF file in the test data."""
-        pdf_file = "tests/data/CertoOne_Sample.pdf"
+        pdf_file = "tests/certo_one/CertoOne_Sample.pdf"
         csv_file = Path(pdf_file).with_suffix(".csv")
 
         if not os.path.exists(pdf_file):
@@ -505,7 +505,7 @@ class TestCertoOneImporterIntegration:
 
     def test_csv_file_reuse(self, importer: Importer) -> None:
         """Test that CSV file is reused if it already exists."""
-        pdf_file = "tests/data/CertoOne_Sample.pdf"
+        pdf_file = "tests/certo_one/CertoOne_Sample.pdf"
 
         if not os.path.exists(pdf_file):
             pytest.skip(f"Test file {pdf_file} not found")
@@ -542,7 +542,7 @@ class TestCertoOneImporterIntegration:
 
     def test_compare_with_expected_structure(self, importer: Importer) -> None:
         """Test that extracted entries match expected structure."""
-        pdf_file = "tests/data/CertoOne_Sample.pdf"
+        pdf_file = "tests/certo_one/CertoOne_Sample.pdf"
         csv_file = Path(pdf_file).with_suffix(".csv")
 
         if not os.path.exists(pdf_file):
@@ -605,7 +605,7 @@ class TestCertoOneImporterEdgeCases:
 
     def test_extract_with_different_file_patterns(self, importer: Importer) -> None:
         """Test extraction with different file patterns."""
-        pdf_file = "tests/data/CertoOne_Sample.pdf"
+        pdf_file = "tests/certo_one/CertoOne_Sample.pdf"
         csv_file = Path(pdf_file).with_suffix(".csv")
 
         if not os.path.exists(pdf_file):
@@ -634,7 +634,7 @@ class TestCertoOneImporterEdgeCases:
 
     def test_extract_with_different_accounts(self, importer: Importer) -> None:
         """Test extraction with different account names."""
-        pdf_file = "tests/data/CertoOne_Sample.pdf"
+        pdf_file = "tests/certo_one/CertoOne_Sample.pdf"
         csv_file = Path(pdf_file).with_suffix(".csv")
 
         if not os.path.exists(pdf_file):

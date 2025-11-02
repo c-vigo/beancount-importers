@@ -1,0 +1,12 @@
+; -*- mode: beancount; coding: utf-8; fill-column: 400; -*-
+; Beancount file for CertoOne sample transactions
+; This file shows how the CertoOne importer should parse the PDF transactions
+
+option "title" "CertoOne Sample Transactions"
+option "operating_currency" "CHF"
+
+; Account definitions
+2025-09-01 open Assets:CertoOne:Main CHF
+
+; Sample transactions would go here
+; (To be populated based on actual test expectations)

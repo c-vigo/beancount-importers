@@ -1,0 +1,15 @@
+; -*- mode: beancount; coding: utf-8; fill-column: 400; -*-
+; Beancount file for N26 basic transaction test
+; This file shows the expected output for test_extract_basic_transaction
+
+option "title" "N26 Basic Transaction Test"
+option "operating_currency" "EUR"
+
+; Account definitions
+2024-01-01 open Assets:N26:Main EUR
+2024-01-01 open Assets:N26:Main:balance EUR
+
+; Basic transaction test (STARBUCKS)
+2024-01-15 * "STARBUCKS COFFEE" "Coffee purchase"
+  Assets:N26:Main:balance  -4.50 EUR
+  Assets:N26:Main           4.50 EUR

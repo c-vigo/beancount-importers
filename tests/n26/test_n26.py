@@ -29,7 +29,7 @@ class TestN26ImporterSimple:
     @pytest.fixture  # type: ignore[misc]
     def sample_csv_file(self) -> str:
         """Get the path to the sample CSV file."""
-        csv_path = "tests/data/N26_Sample.csv"
+        csv_path = "tests/n26/N26_Sample.csv"
         if not os.path.exists(csv_path):
             pytest.skip(f"Sample CSV file not found: {csv_path}")
         return csv_path
@@ -465,7 +465,7 @@ class TestN26ImporterIntegrationSimple:
 
     def test_extract_from_real_csv_file(self, importer: n26_importer) -> None:
         """Test extraction from a real CSV file in the test data."""
-        csv_file = "tests/data/N26_Sample.csv"
+        csv_file = "tests/n26/N26_Sample.csv"
 
         if not os.path.exists(csv_file):
             pytest.skip(f"Test file {csv_file} not found")
@@ -487,7 +487,7 @@ class TestN26ImporterIntegrationSimple:
     def test_extract_multiple_files(self, importer: n26_importer) -> None:
         """Test extraction from multiple CSV files."""
         csv_files = [
-            "tests/data/N26_Sample.csv",
+            "tests/n26/N26_Sample.csv",
         ]
 
         all_entries: list[data.Transaction] = []
@@ -515,8 +515,8 @@ class TestN26ImporterIntegrationSimple:
 
     def test_compare_with_expected_journal(self, importer: n26_importer) -> None:
         """Test that extracted entries match expected journal format."""
-        csv_file = "tests/data/N26_Sample.csv"
-        journal_file = "tests/data/journal.beancount"
+        csv_file = "tests/n26/N26_Sample.csv"
+        journal_file = "tests/n26/journal.beancount"
 
         if not os.path.exists(csv_file) or not os.path.exists(journal_file):
             pytest.skip("Test files not found")

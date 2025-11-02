@@ -1,0 +1,20 @@
+; -*- mode: beancount; coding: utf-8; fill-column: 400; -*-
+; Beancount file for N26 credit/debit transfer tests
+; This file shows the expected output for test_extract_credit_transfer and test_extract_debit_transfer
+
+option "title" "N26 Credit/Debit Transfer Tests"
+option "operating_currency" "EUR"
+
+; Account definitions
+2024-01-01 open Assets:N26:Main EUR
+2024-01-01 open Assets:N26:Main:balance EUR
+
+; Credit transfer test (Salary)
+2024-01-18 * "John Smith" "Salary January 2024"
+  Assets:N26:Main:balance  2500.00 EUR
+  Assets:N26:Main         -2500.00 EUR
+
+; Debit transfer test (Rent)
+2024-01-19 * "Maria García" "Rent payment"
+  Assets:N26:Main:balance  -800.00 EUR
+  Assets:N26:Main           800.00 EUR

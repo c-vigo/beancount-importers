@@ -1,0 +1,15 @@
+; -*- mode: beancount; coding: utf-8; fill-column: 400; -*-
+; Beancount file for N26 foreign currency transaction test
+; This file shows the expected output for test_extract_foreign_currency
+
+option "title" "N26 Foreign Currency Test"
+option "operating_currency" "EUR"
+
+; Account definitions
+2024-01-01 open Assets:N26:Main EUR
+2024-01-01 open Assets:N26:Main:balance EUR
+
+; Foreign currency transaction test
+2024-02-26 * "FOREIGN TRANSACTION" "US Dollar purchase"
+  Assets:N26:Main:balance  -54.11 EUR
+  Assets:N26:Main           54.11 EUR
