@@ -1,0 +1,8 @@
+"Date";"Booking text";"Curr";"Amount details";"ZKB reference";"Reference number";"Debit CHF";"Credit CHF";"Value date";"Balance CHF";"Payment purpose";"Details"
+"01.01.2024";"Credit salary: Test Employer, Address, City";"";"";"Z001";"";"";"5000.00";"01.01.2024";"5000.00";"";""
+"05.01.2024";"Debit TWINT: Test Merchant";"";"";"L001";"";"25.50";"";"05.01.2024";"4974.50";"";""
+"10.01.2024";"Debit eBill: Test Utility Company";"";"";"Z002";"";"150.00";"";"10.01.2024";"4824.50";"";"Test Utility Company"
+"15.01.2024";"Debit Mobile Banking: Test Company";"";"";"Z003";"";"100.00";"";"15.01.2024";"4724.50";"";"Test Company"
+"20.01.2024";"Purchase ZKB Visa Debit card no. xxxx 1234, Test Store";"";"";"L002";"";"50.00";"";"20.01.2024";"4674.50";"";""
+"25.01.2024";"Debit Standing order: Test Recipient";"";"";"Z004";"";"200.00";"";"25.01.2024";"4474.50";"";""
+"30.01.2024";"Credit TWINT: Test Sender";"";"";"L003";"";"";"75.00";"30.01.2024";"4549.50";"";""
