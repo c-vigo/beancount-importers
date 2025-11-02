@@ -1,5 +1,6 @@
 import csv
 import datetime
+import os
 import re
 import warnings
 from enum import Enum
@@ -90,6 +91,7 @@ class Importer(beangulp.Importer):
         fees_account: str,
         pnl_account: str,
         external_account: str | None = None,
+        loan_currency: str = "MNTS",
     ):
         self._filepattern = filepattern
         self._cash_account = cash_account
@@ -97,6 +99,7 @@ class Importer(beangulp.Importer):
         self._loan_account = loan_account
         self._fees_account = fees_account
         self._external_account = external_account
+        self._loan_currency = loan_currency
 
     def identify(self, filepath: str | Any) -> bool:
         """Identify if the file matches the pattern."""
@@ -128,6 +131,10 @@ class Importer(beangulp.Importer):
         """Build postings for accumulated transactions."""
         postings: list[data.Posting] = []
         total = accumulated_cashflow + accumulated_fees + accumulated_interest
+
+        # Price annotation: 1 MNTS = 1 EUR
+        price = amount.Amount(D("1"), "EUR")
+
         if accumulated_interest != 0:
             postings.append(
                 data.Posting(
@@ -151,12 +158,14 @@ class Importer(beangulp.Importer):
                 )
             )
         if accumulated_cashflow != 0:
+            # Loans are tracked in MNTS (pegged currency, 1 MNTS = 1 EUR)
+            # Negative cashflow (investments) = negative MNTS (loans increase)
             postings.append(
                 data.Posting(
                     self._loan_account,
-                    -amount.Amount(D(accumulated_cashflow), "EUR"),
+                    amount.Amount(D(accumulated_cashflow), "MNTS"),
                     None,
-                    None,
+                    price,
                     None,
                     None,
                 )
@@ -247,9 +256,15 @@ class Importer(beangulp.Importer):
                 )
                 accumulated_cashflow = accumulated_fees = accumulated_interest = D("0")
                 if postings:
+                    # Create metadata with date, document, and source_desc
+                    meta = data.new_metadata(path, last_index)
+                    meta["date"] = transaction.date
+                    meta["document"] = os.path.basename(path)
+                    meta["source_desc"] = "Summary"
+
                     entries.append(
                         data.Transaction(
-                            data.new_metadata(path, last_index),
+                            meta,
                             transaction.date,
                             "*",
                             "Mintos",
@@ -306,12 +321,18 @@ class Importer(beangulp.Importer):
                 accumulated_fees, accumulated_interest, accumulated_cashflow
             )
             if postings:
+                # Create metadata with date, document, and source_desc
+                meta = data.new_metadata(
+                    path,
+                    last_index if last_index is not None else 0,
+                )
+                meta["date"] = last_date
+                meta["document"] = os.path.basename(path)
+                meta["source_desc"] = "Summary"
+
                 entries.append(
                     data.Transaction(
-                        data.new_metadata(
-                            path,
-                            last_index if last_index is not None else 0,
-                        ),
+                        meta,
                         last_date,
                         "*",
                         "Mintos",

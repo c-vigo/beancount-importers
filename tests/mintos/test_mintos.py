@@ -168,6 +168,21 @@ class TestMintosImporter:
             # Should have cash account posting
             assert any(p.account == "Assets:Mintos:Cash" for p in summary.postings)
 
+            # Check metadata
+            assert "date" in summary.meta
+            assert "document" in summary.meta
+            assert summary.meta["source_desc"] == "Summary"
+
+            # Check loans posting has MNTS with price annotation
+            loans_posting = next(
+                (p for p in summary.postings if p.account == "Assets:Mintos:Loans"),
+                None,
+            )
+            if loans_posting is not None:
+                assert loans_posting.units.currency == "MNTS"
+                assert loans_posting.price is not None
+                assert loans_posting.price == amount.Amount(D("1"), "EUR")
+
     def test_extract_accumulates_interests_and_fees(
         self, importer: Importer, sample_csv_file: str
     ) -> None:
@@ -303,6 +318,17 @@ class TestMintosImporter:
         assert "Assets:Mintos:Loans" in accounts
         assert "Expenses:Mintos:Fees" in accounts
         assert "Income:Mintos:Interest" in accounts
+
+        # Check loans posting has MNTS currency and price annotation
+        loans_posting = next(
+            (p for p in postings if p.account == "Assets:Mintos:Loans"), None
+        )
+        assert loans_posting is not None
+        assert loans_posting.units.currency == "MNTS"
+        # accumulated_cashflow is -50.00 (investments), so loans should be -50.00 MNTS
+        assert loans_posting.units.number == D("-50.00")
+        assert loans_posting.price is not None
+        assert loans_posting.price == amount.Amount(D("1"), "EUR")
 
     def test_build_postings_zero_values(self, importer: Importer) -> None:
         """Test build_postings with zero values."""
