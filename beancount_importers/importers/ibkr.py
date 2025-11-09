@@ -94,12 +94,13 @@ class Importer(beangulp.Importer):
                     ],
                     delimiter=",",
                 )
-                for row in reader:
+                rows = list(reader)[1:]  # Skip header row
+                for index, row in enumerate(rows, start=2):  # Start at 2 (header + 1)
                     try:
                         # Parse
                         category = row["Type"]
                         book_date = parse(row["Date"].strip()).date()
-                        meta = data.new_metadata(path, reader.line_num)
+                        meta = data.new_metadata(path, index)
                         meta["document"] = (
                             f"{book_date.year}-12-31-InteractiveBrokers_"
                             "ActivityReport.pdf"
@@ -400,10 +401,7 @@ class Importer(beangulp.Importer):
 
                     except (ValueError, KeyError, IndexError) as e:
                         warnings.warn(
-                            (
-                                f"Error parsing row {reader.line_num} "
-                                f"from file {path}: {e}"
-                            ),
+                            (f"Error parsing row {index} from file {path}: {e}"),
                             stacklevel=2,
                         )
                         continue
