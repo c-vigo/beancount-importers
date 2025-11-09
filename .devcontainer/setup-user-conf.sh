@@ -75,26 +75,3 @@ awk -F= '
 ' "$GITCONFIG_GLOBAL" >"$GITCONFIG_OUT"
 
 echo "Generated valid .gitconfig at $GITCONFIG_OUT from effective config in current directory"
-
-# Check if GPG socket path env variable exists
-ACTUAL_GPG_SOCKET_PATH=$(gpgconf --list-dirs agent-socket 2>/dev/null || echo "")
-
-if [ -z "$GPG_SOCKET_PATH" ]; then
-	echo "GPG socket path env variable not set, dev container will fail to start"
-	exit 1
-elif [ "$ACTUAL_GPG_SOCKET_PATH" != "$GPG_SOCKET_PATH" ]; then
-	echo "GPG socket path env variable set, but does not match actual path: $ACTUAL_GPG_SOCKET_PATH"
-	exit 1
-else
-	echo "Using GPG socket path: $GPG_SOCKET_PATH"
-fi
-
-# Export public keys
-if gpg --list-keys >/dev/null 2>&1; then
-	gpg --export --armor >"$CONF_DIR/gpg-public-keys.asc"
-	echo "Exported public GPG keys to $CONF_DIR/gpg-public-keys.asc"
-	gpg --export-ownertrust >"$CONF_DIR/gpg-ownertrust.txt"
-	echo "Exported GPG ownertrust to $CONF_DIR/gpg-ownertrust.txt"
-else
-	echo "No public GPG keys found. Skipping export."
-fi

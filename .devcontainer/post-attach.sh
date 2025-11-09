@@ -42,31 +42,4 @@ else
 	echo "Pre-commit not found, skipping pre-commit setup"
 fi
 
-# Setup GPG key import
-echo "Setting up GPG key import..."
-
-# Check if there's a GPG keys file created by setup-user-conf.sh
-GPG_HOST_KEYS_FILE="/workspace/.devcontainer/.conf/gpg-public-keys.asc"
-GPG_OWNERTRUST_FILE="/workspace/.devcontainer/.conf/gpg-ownertrust.txt"
-if [ -f "$GPG_HOST_KEYS_FILE" ]; then
-	echo "Importing GPG keys from host..."
-	mkdir -p $HOME/.gnupg
-	chmod 700 $HOME/.gnupg
-	if gpg --import --batch --quiet "$GPG_HOST_KEYS_FILE"; then
-		echo "GPG keys imported successfully"
-		if [ -f "$GPG_OWNERTRUST_FILE" ]; then
-			echo "Importing GPG ownertrust from host..."
-			gpg --import-ownertrust "$GPG_OWNERTRUST_FILE"
-			echo "GPG ownertrust imported successfully"
-		else
-			echo "No GPG ownertrust file found, trust will need to be set manually"
-		fi
-	else
-		echo "Warning: Failed to import GPG keys"
-	fi
-else
-	echo "No GPG keys file found, keys will need to be imported manually"
-	echo "Run this from host: gpg --export -a | podman exec -i <container> gpg --import -"
-fi
-
 echo "Post-attach setup complete"

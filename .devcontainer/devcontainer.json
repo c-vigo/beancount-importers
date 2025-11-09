@@ -1,8 +1,6 @@
 {
     "name": "Beancount Importers Development",
-    "image": "beancount-importers:latest",
-    "dockerComposeFile": "../docker-compose.yml",
-    "service": "dev",
+    "image": "localhost/beancount-importers_dev",
     "workspaceFolder": "/workspace",
     "customizations": {
         "vscode": {
@@ -40,8 +38,7 @@
         }
     },
     "mounts": [
-        "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
-        "source=${env:GPG_SOCKET_PATH},target=/root/.gnupg/S.gpg-agent,type=bind"
+        "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached"
     ],
     "postAttachCommand": "/workspace/.devcontainer/post-attach.sh"
 }

@@ -17,7 +17,7 @@ COPY \
     docs \
     tests \
     /workspace/
-RUN pip install --no-cache-dir -e .[dev,test]
+RUN pip install --no-cache-dir -e ".[dev,telegram]"
 
 # Default command - interactive shell
 CMD ["/bin/bash"]
