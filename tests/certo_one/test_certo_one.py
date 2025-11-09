@@ -365,8 +365,13 @@ class TestCertoOnePDFParsing:
         # by mocking camelot to raise the specific TypeError
         import unittest.mock
 
-        with unittest.mock.patch("camelot.read_pdf") as mock_camelot:
+        # Patch camelot.read_pdf in the certo_one module
+        # to ensure we catch the right location
+        with unittest.mock.patch(
+            "beancount_importers.importers.certo_one.camelot.read_pdf"
+        ) as mock_camelot:
             # Simulate the specific TypeError that occurs in bbox_from_textlines
+            # All three attempts will fail, and the third should propagate the error
             mock_camelot.side_effect = TypeError(
                 "cannot unpack non-iterable NoneType object"
             )
@@ -376,6 +381,7 @@ class TestCertoOnePDFParsing:
                 csv_file = os.path.join(temp_dir, "BboxError_Test.csv")
 
                 # This should raise the TypeError from camelot
+                # The first two attempts catch the error, but the third propagates it
                 with pytest.raises(
                     TypeError, match="cannot unpack non-iterable NoneType object"
                 ):
