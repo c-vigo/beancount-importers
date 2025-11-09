@@ -10,10 +10,57 @@ A collection of importers for [Beancount](https://beancount.github.io/), the dou
 - **Comprehensive Testing**: pytest-based test suite
 - **Code Quality**: Ruff (linting & formatting), isort, and mypy integration
 
+## Importers
+
+The following importers are available in this package:
+
+- **certo_one**: CertoOne credit card PDF statements
+- **finpension**: Finpension CSV
+- **ibkr**: Interactive Brokers custom flex query
+- **mintos**: Mintos CSV
+- **n26**: N26 CSV
+- **neon**: Neon CSV
+- **revolut**: Revolut CSV
+- **sbb**: SBB orders CSV
+- **splitwise** Splitwise CSV
+  - `HouseHoldSplitWiseImporter`: Household
+  - `TripSplitWiseImporter`: Trips
+- **telegram**: Telegram chat/transaction CSV
+- **zkb**: ZKB CSV
+
+## CLI Tools
+
+### Telegram Downloader
+
+The package includes a CLI tool (`beancount-telegram`) to download transaction messages from Telegram chats and format them as CSV files for import with the Telegram importer.
+
+**Installation:**
+
+```bash
+pip install beancount-importers[telegram]
+```
+
+**Quick Start:**
+
+```bash
+beancount-telegram API_ID API_HASH CHAT_ID \
+  --root-folder /path/to/records \
+  --temp-folder /path/to/temp \
+  --account-map Cash=Assets:Cash:CHF
+```
+
+For detailed documentation, usage examples, and troubleshooting, see the [CLI README](beancount_importers/cli/README.md).
+
 ## Installation
 
 ```bash
 pip install beancount-importers
+```
+
+For Telegram support:
+
+```bash
+pip install beancount-importers[telegram]
 ```
 
 ## Development Setup
