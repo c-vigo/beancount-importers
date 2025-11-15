@@ -4,3 +4,4 @@ Z-Pass A-Welle-ZVV Day Pass,Zürich Stadelhofen → Baden Kantonsspital,Zürich 
 ZVV Day Pass (calendar day),Zürich Flughafen → Zürich HB,Zürich,32.00,Person A,2024-03-15,2024-03-15 00:00 - 2024-03-16 05:00,2024-03-14,12345680,Half Fare Card PLUS,person@example.com
 Point-to-point Ticket,Bern → Basel,Bus - Bern - Olten - Basel,28.75,Person A,2024-04-20,2024-04-20 00:00 - 2024-04-21 05:00,2024-04-19,12345681,Half Fare Card PLUS,person@example.com
 ZVV Single Ticket,Zürich HB → Zürich Flughafen,,38.50,Person A,2024-05-25,2024-05-25 10:00 - 2024-05-25 11:00,2024-05-24,12345682,Half Fare Card PLUS,person@example.com
+ZVV Single Ticket,Zürich HB → Basel,,30.00,Person A,2024-06-10,2024-06-10 08:00 - 2024-06-10 09:30,2024-06-09,12345683,Mastercard,person@example.com

@@ -85,6 +85,14 @@ class Importer(beangulp.Importer):
                         if self.owner not in co_passengers:
                             continue
 
+                        # Check if payment method is "Half Fare Card PLUS"
+                        payment_method = row.get("Payment methods", "") or ""
+                        payment_method = (
+                            payment_method.strip() if payment_method else ""
+                        )
+                        if payment_method != "Half Fare Card PLUS":
+                            continue
+
                         # Parse dates
                         order_date_str = row.get("Order date", "") or ""
                         order_date_str = (

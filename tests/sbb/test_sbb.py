@@ -276,3 +276,41 @@ class TestSBBImporter:
             assert entries[0].date == date(2024, 1, 15)
         finally:
             os.unlink(temp_path)
+
+    def test_extract_filters_non_half_fare_card_plus(self, importer: Importer) -> None:
+        """Test that extract ignores non-'Half Fare Card PLUS' transactions."""
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".csv", delete=False, encoding="utf-8"
+        ) as f:
+            f.write(
+                "Tariff,Route,Via (optional),Price,Co-passenger(s),Travel date,"
+                "Validity,Order date,Order number,Payment methods,Purchaser e-mail\n"
+            )
+            # Transaction with Half Fare Card PLUS - should be included
+            f.write(
+                "ZVV Single Ticket,Zürich HB → Bern,,25.50,Person A,2024-01-20,"
+                "2024-01-20 08:00 - 2024-01-20 09:30,2024-01-15,12345678,"
+                "Half Fare Card PLUS,person@example.com\n"
+            )
+            # Transaction with Mastercard - should be ignored
+            f.write(
+                "ZVV Single Ticket,Zürich HB → Basel,,30.00,Person A,2024-06-10,"
+                "2024-06-10 08:00 - 2024-06-10 09:30,2024-06-09,12345683,"
+                "Mastercard,person@example.com\n"
+            )
+            # Transaction with empty payment method - should be ignored
+            f.write(
+                "ZVV Single Ticket,Zürich HB → Zürich Flughafen,,38.50,"
+                "Person A,2024-05-25,2024-05-25 10:00 - 2024-05-25 11:00,"
+                "2024-05-24,12345682,,person@example.com\n"
+            )
+            temp_path = f.name
+
+        try:
+            entries = importer.extract(temp_path)
+            # Should only extract the transaction with Half Fare Card PLUS
+            assert len(entries) == 1
+            assert entries[0].postings[0].units.number == D("-25.50")
+            assert entries[0].meta.get("orderno") == "12345678"
+        finally:
+            os.unlink(temp_path)
