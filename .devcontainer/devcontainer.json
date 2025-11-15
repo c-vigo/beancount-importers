@@ -1,6 +1,6 @@
 {
-    "name": "Beancount Importers Development",
-    "image": "localhost/beancount-importers_dev",
+    "name": "Beancount Importers",
+    "image": "ghcr.io/c-vigo/finances/beancount:latest",
     "workspaceFolder": "/workspace",
     "customizations": {
         "vscode": {

@@ -1,69 +1,95 @@
+---
 # .pre-commit-config.yaml
 
-# Exclude GE files from any pre-commit hooks
-exclude: |
-  (?x)(
-      ^ge_discovery_mi/ge_discovery_mi/resources/acq\.cfg.*$ |
-      ^scripts/GE_Scripts/.* |
-      ^scripts/old/.*
-  )
+exclude: ^\.cursor/
 
 repos:
-  # Ruff: Linting & Formatting
+  # General Pre-commit Hooks (Fixes formatting issues)
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-added-large-files
+      - id: check-case-conflict
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-symlinks
+      - id: check-toml
+      - id: check-yaml
+      - id: debug-statements
+      - id: destroyed-symlinks
+      - id: detect-private-key
+      - id: end-of-file-fixer
+      - id: mixed-line-ending
+      - id: trailing-whitespace
+
+  # Python Linting and Formatting (Ruff)
+  # on pre-commit, fix linting errors
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.12.10
+    rev: v0.14.3
     hooks:
       - id: ruff
-        args: ["--fix"]
+        name: ruff (commit)
+        # ignore docstring linting errors on pre-commit
+        args: [--fix, --ignore=D]
+        stages: [pre-commit]
       - id: ruff-format
+        name: ruff-format (commit)
+        stages: [pre-commit]
 
-  # Mypy: Static Type Checking
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.17.0
+  # on push, fix linting errors and enforce docstrings
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.14.3
     hooks:
-      - id: mypy
-        additional_dependencies: [types-python-dateutil==2.9.0.20250822]
-        description: Type checking for Python
+      - id: ruff
+        name: ruff (push - strict)
+        args: [--fix, --extend-select=D]  # enforce docstrings on push
+        stages: [pre-push]
+      - id: ruff-format
+        name: ruff-format (push - strict)
+        stages: [pre-push]
+
+  # YAML Linting
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.35.1
+    hooks:
+      - id: yamllint
+        args: ["--format", "parsable", "--strict"]
+
+  # Shellcheck
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.10.0.1
+    hooks:
+      - id: shellcheck
+        name: shellcheck
+
+  # Markdown Linting (auto-fixes issues)
+  - repo: https://github.com/jackdewinter/pymarkdown
+    rev: v0.9.23
+    hooks:
+      - id: pymarkdown
+        name: pymarkdown
+        args: ["fix"]
+        exclude: ^\.github_data/
 
   # Dockerfile Linting
   - repo: local
     hooks:
       - id: hadolint
         name: hadolint
-        entry: hadolint
         language: system
-        types: [dockerfile]
-        args: ["--ignore", "DL3008", "--ignore", "DL3009"]
+        entry: hadolint --config .hadolint.yaml
+        files: (Containerfile|Dockerfile)$
 
-  # YAML Linting
-  - repo: https://github.com/adrienverge/yamllint
-    rev: v1.37.1
+  # Makefile
+  - repo: https://github.com/checkmake/checkmake
+    rev: 0.2.2
     hooks:
-      - id: yamllint
-        args: ["--format", "parsable", "--strict"]
+      - id: checkmake
+        name: checkmake (lint Makefile)
+        files: ^Makefile$
 
-  # General Pre-commit Hooks (Fixes formatting issues)
-  - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v6.0.0
+  # Typo Linting
+  - repo: https://github.com/crate-ci/typos
+    rev: v1.39.0
     hooks:
-      - id: end-of-file-fixer
-      - id: trailing-whitespace
-      - id: check-merge-conflict
-
-  # Shell: Linting and Static Analysis
-  - repo: local
-    hooks:
-      - id: shellcheck
-        name: shellcheck
-        description: Test shell scripts with shellcheck
-        entry: shellcheck
-        language: python
-        types: [shell]
-        require_serial: true
-        args: ["--severity=warning"]
-
-  # Shell: Formatting
-  - repo: https://github.com/scop/pre-commit-shfmt
-    rev: v3.12.0-2
-    hooks:
-      - id: shfmt         # prebuilt upstream executable
+      - id: typos
