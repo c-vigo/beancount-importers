@@ -359,7 +359,7 @@ class TestIBKRImporter:
         )
         assert sell_entry is not None
 
-        # Should have cash and PnL postings at minimum
+        # Should have cash and OnL postings at minimum
         assert len(sell_entry.postings) >= 2
         cash_posting = next(
             (p for p in sell_entry.postings if p.account == importer.cash_account),

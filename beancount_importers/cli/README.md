@@ -30,7 +30,7 @@ beancount-telegram API_ID API_HASH CHAT_ID [OPTIONS]
 - `-att, --attachment-map PATTERNS`: Configure attachment download patterns (format: `account;pattern;skip_init;skip_end;name`, can be specified multiple times)
 - `-s, --session-file PATH`: Path to Telegram session file (default: `~/.config/beancount_telegram/telegram.session`)
 - `-f, --force`: Force re-download of all transactions (even if already downloaded)
-- `-nd, --no-download`: Skip downloading attachments
+- `-and, --no-download`: Skip downloading attachments
 - `-n, --dry-run`: Perform a dry run without modifying any files
 - `-c, --check`: Check access to Telegram chat and display chat info, then exit
 

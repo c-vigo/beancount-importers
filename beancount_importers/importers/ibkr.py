@@ -590,7 +590,7 @@ class Importer(beangulp.Importer):
         # Accounts
         security = shares.currency
         security_account = self._parent_account + ":" + security
-        pnl_account = self._income_account + ":" + security + ":PnL"
+        pnl_account = self._income_account + ":" + security + ":OnL"
 
         # Build inventory
         processed_transactions: list[str] = []

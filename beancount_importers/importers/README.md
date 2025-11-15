@@ -192,6 +192,7 @@ importer = ibkr_importer.Importer(
 **Transaction Examples:**
 
 - **Stock Purchase:**
+
   ```
   2024-01-15 * "BUY 10 VEA @ 46.925"
     Assets:Investments:IBKR:VEA    10 VEA {46.925 USD}
@@ -199,14 +200,16 @@ importer = ibkr_importer.Importer(
   ```
 
 - **Stock Sale with P&L:**
+
   ```
   2024-02-15 * "SELL 5 VEA @ 48.00"
     Assets:Investments:IBKR:Cash    240.00 USD
     Assets:Investments:IBKR:VEA    -5 VEA {46.925 USD} @ 48.00 USD
-    Income:Investments:PnL          -5.375 USD
+    Income:Investments:OnL          -5.375 USD
   ```
 
 - **Dividend:**
+
   ```
   2024-03-15 * "Dividend VEA"
     Assets:Investments:IBKR:Cash    12.50 USD

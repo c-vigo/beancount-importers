@@ -258,7 +258,7 @@ def beancount_telegram() -> None:
     )
     # Download files
     ap.add_argument(
-        "-nd",
+        "-and",
         "--no-download",
         action="store_true",
         help="Do not download files",

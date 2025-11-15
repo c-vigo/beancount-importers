@@ -66,28 +66,32 @@ pip install beancount-importers[telegram]
 ## Development Setup
 
 1. Clone the repository:
+
 ```bash
 git clone https://github.com/c-vigo/beancount-importers.git
 cd beancount-importers
 ```
 
-2. Create a virtual environment:
+1. Create a virtual environment:
+
 ```bash
 python3.12 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 ```
 
-3. Install development dependencies:
+1. Install development dependencies:
+
 ```bash
 pip install -e ".[dev]"
 ```
 
-4. Install pre-commit hooks:
+1. Install pre-commit hooks:
+
 ```bash
 pre-commit install
 ```
 
-5. Running Tests
+1. Running Tests
 
 ```bash
 # Run all tests
