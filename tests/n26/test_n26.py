@@ -136,14 +136,11 @@ class TestN26ImporterSimple:
         assert first_entry.flag == "*"
 
         # Check postings
-        assert len(first_entry.postings) == 2
+        assert len(first_entry.postings) == 1
         main_posting = first_entry.postings[0]
-        balance_posting = first_entry.postings[1]
 
         assert main_posting.account == "Assets:N26:Main"
         assert main_posting.units == amount.Amount(D("-4.50"), "EUR")
-        assert balance_posting.account == "Assets:N26:Main:balance"
-        assert balance_posting.units == amount.Amount(D("4.50"), "EUR")
 
     def test_extract_credit_transfer(
         self, importer: n26_importer, sample_csv_file: str
@@ -164,14 +161,11 @@ class TestN26ImporterSimple:
         assert credit_entry.narration == "Salary January 2024"
 
         # Check postings for credit transfer
-        assert len(credit_entry.postings) == 2
+        assert len(credit_entry.postings) == 1
         main_posting = credit_entry.postings[0]
-        balance_posting = credit_entry.postings[1]
 
         assert main_posting.account == "Assets:N26:Main"
         assert main_posting.units == amount.Amount(D("2500.00"), "EUR")
-        assert balance_posting.account == "Assets:N26:Main:balance"
-        assert balance_posting.units == amount.Amount(D("-2500.00"), "EUR")
 
     def test_extract_debit_transfer(
         self, importer: n26_importer, sample_csv_file: str
@@ -192,14 +186,11 @@ class TestN26ImporterSimple:
         assert debit_entry.narration == "Rent payment"
 
         # Check postings for debit transfer
-        assert len(debit_entry.postings) == 2
+        assert len(debit_entry.postings) == 1
         main_posting = debit_entry.postings[0]
-        balance_posting = debit_entry.postings[1]
 
         assert main_posting.account == "Assets:N26:Main"
         assert main_posting.units == amount.Amount(D("-800.00"), "EUR")
-        assert balance_posting.account == "Assets:N26:Main:balance"
-        assert balance_posting.units == amount.Amount(D("800.00"), "EUR")
 
     def test_extract_foreign_currency(
         self, importer: n26_importer, sample_csv_file: str
@@ -220,14 +211,11 @@ class TestN26ImporterSimple:
         assert foreign_entry.narration == "US Dollar purchase"
 
         # Check postings (should still be in EUR)
-        assert len(foreign_entry.postings) == 2
+        assert len(foreign_entry.postings) == 1
         main_posting = foreign_entry.postings[0]
-        balance_posting = foreign_entry.postings[1]
 
         assert main_posting.account == "Assets:N26:Main"
         assert main_posting.units == amount.Amount(D("-54.11"), "EUR")
-        assert balance_posting.account == "Assets:N26:Main:balance"
-        assert balance_posting.units == amount.Amount(D("54.11"), "EUR")
 
     def test_extract_special_characters(
         self, importer: n26_importer, sample_csv_file: str
@@ -278,7 +266,7 @@ class TestN26ImporterSimple:
         assert zero_entry.date == date(2024, 4, 4)
 
         # Check postings for zero amount
-        assert len(zero_entry.postings) == 1  # No balance posting for zero amount
+        assert len(zero_entry.postings) == 1
         main_posting = zero_entry.postings[0]
         assert main_posting.account == "Assets:N26:Main"
         assert main_posting.units == amount.Amount(D("0.00"), "EUR")

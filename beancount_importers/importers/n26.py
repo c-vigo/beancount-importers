@@ -74,21 +74,6 @@ class Importer(beangulp.Importer):
                 units = amount.Amount(D(row["Amount (EUR)"]), "EUR")
                 cost = None
 
-                # Create postings
-                postings = [
-                    data.Posting(self._account, units, cost, None, None, None),
-                ]
-
-                # Add balance posting if amount is not zero
-                if units.number != D("0"):
-                    balance_account = f"{self._account}:balance"
-                    balance_units = amount.Amount(-units.number, "EUR")
-                    postings.append(
-                        data.Posting(
-                            balance_account, balance_units, cost, None, None, None
-                        )
-                    )
-
                 entries.append(
                     data.Transaction(
                         meta,
@@ -98,7 +83,7 @@ class Importer(beangulp.Importer):
                         description,
                         data.EMPTY_SET,
                         data.EMPTY_SET,
-                        postings,
+                        [data.Posting(self._account, units, cost, None, None, None)],
                     )
                 )
 
