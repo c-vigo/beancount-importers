@@ -1,4 +1,4 @@
-"Date";"Booking text";"Curr";"Amount details";"ZKB reference";"Reference number";"Debit CHF";"Credit CHF";"Value date";"Balance CHF";"Payment purpose";"Details"
+﻿"Date";"Booking text";"Curr";"Amount details";"ZKB reference";"Reference number";"Debit CHF";"Credit CHF";"Value date";"Balance CHF";"Payment purpose";"Details"
 "01.01.2024";"Credit salary: Test Employer, Address, City";"";"";"Z001";"";"";"5000.00";"01.01.2024";"5000.00";"";""
 "05.01.2024";"Debit TWINT: Test Merchant";"";"";"L001";"";"25.50";"";"05.01.2024";"4974.50";"";""
 "10.01.2024";"Debit eBill: Test Utility Company";"";"";"Z002";"";"150.00";"";"10.01.2024";"4824.50";"";"Test Utility Company"

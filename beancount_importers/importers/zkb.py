@@ -57,7 +57,7 @@ class ZkbCSVImporter(beangulp.Importer):
         if existing_entries is None:
             existing_entries = []
 
-        with open(path, encoding="utf-8") as csvfile:
+        with open(path, encoding="utf-8-sig") as csvfile:
             # Read the actual header to get column names
             reader = csv.DictReader(csvfile, delimiter=";")
             rows = list(reader)
