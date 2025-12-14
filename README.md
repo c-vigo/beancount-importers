@@ -65,6 +65,14 @@ pip install beancount-importers[telegram]
 
 ## Development Setup
 
+### Recommended: Using DevContainer
+
+The easiest way to get started is using the pre-configured DevContainer. Simply open the repository in VS Code and select "Reopen in Container" when prompted, or use the Dev Containers extension.
+
+The DevContainer is pre-configured with all dependencies and tools needed for development.
+
+### Manual Setup
+
 1. Clone the repository:
 
 ```bash
@@ -72,39 +80,32 @@ git clone https://github.com/c-vigo/beancount-importers.git
 cd beancount-importers
 ```
 
-1. Create a virtual environment:
-
-```bash
-python3.12 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
-
 1. Install development dependencies:
 
 ```bash
-pip install -e ".[dev]"
+uv sync --dev
 ```
 
 1. Install pre-commit hooks:
 
 ```bash
-pre-commit install
+uv run pre-commit install
 ```
 
 1. Running Tests
 
 ```bash
 # Run all tests
-pytest
+uv run pytest
 
 # Run with coverage
-pytest --cov=beancount_importers
+uv run pytest --cov=beancount_importers
 
 # Run specific test file
-pytest tests/test_base.py
+uv run pytest tests/test_base.py
 
 # Run with verbose output
-pytest -v
+uv run pytest -v
 ```
 
 ## Contributing
@@ -113,8 +114,8 @@ pytest -v
 2. Create a feature branch: `git checkout -b feature-name`
 3. Make your changes
 4. Add tests for new functionality
-5. Ensure all tests pass: `pytest`
-6. Format your code: `black src tests && isort src tests`
+5. Ensure all tests pass: `uv run pytest`
+6. Format your code: `uv run ruff format . && uv run ruff check --fix .`
 7. Commit your changes: `git commit -m 'Add feature'`
 8. Push to the branch: `git push origin feature-name`
 9. Submit a pull request

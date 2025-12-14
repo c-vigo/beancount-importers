@@ -1,30 +1,26 @@
 {
-    "name": "Beancount Importers",
-    "image": "ghcr.io/c-vigo/finances/beancount:latest",
-    "workspaceFolder": "/workspace",
+    "name": "beancount_importers-devc",
+    "dockerComposeFile": "docker-compose.yml",
+    "service": "devcontainer",
+    "workspaceFolder": "/workspace/beancount_importers",
     "customizations": {
         "vscode": {
             "extensions": [
                 "ms-python.python",
-                "ms-python.black-formatter",
-                "ms-python.isort",
+                "charliermarsh.ruff",
                 "ms-vscode.vscode-json",
                 "redhat.vscode-yaml",
-                "GitHub.vscode-pull-request-github",
-                "tamasfe.even-better-toml",
-                "mechatroner.rainbow-csv"
+                "GitHub.vscode-pull-request-github"
             ],
             "settings": {
                 "python.defaultInterpreterPath": "/usr/local/bin/python",
-                "python.linting.enabled": true,
-                "python.formatting.provider": "black",
-                "python.sortImports.args": [
-                    "--profile",
-                    "black"
-                ],
-                "editor.formatOnSave": true,
-                "editor.codeActionsOnSave": {
-                    "source.organizeImports": true
+                "[python]": {
+                    "editor.defaultFormatter": "charliermarsh.ruff",
+                    "editor.formatOnSave": true,
+                    "editor.codeActionsOnSave": {
+                        "source.organizeImports": "explicit",
+                        "source.fixAll": "explicit"
+                    }
                 },
                 "files.exclude": {
                     "**/__pycache__": true,
@@ -37,8 +33,7 @@
             }
         }
     },
-    "mounts": [
-        "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached"
-    ],
-    "postAttachCommand": "/workspace/.devcontainer/post-attach.sh"
+    "initializeCommand": ".devcontainer/scripts/initialize.sh",
+    "postAttachCommand": "/workspace/beancount_importers/.devcontainer/scripts/post-attach.sh",
+    "postCreateCommand": "/workspace/beancount_importers/.devcontainer/scripts/post-create.sh"
 }

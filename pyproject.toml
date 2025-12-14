@@ -29,6 +29,7 @@ dependencies = [
     "python-dateutil",
     "camelot-py",
     "pypdf",
+    "telethon",
 ]
 
 [project.optional-dependencies]
@@ -41,7 +42,6 @@ dev = [
     "pre-commit==4.3.0",
     "coverage==7.10.5",
 ]
-telegram = ["telethon"]
 
 [project.urls]
 Homepage = "https://github.com/c-vigo/beancount-importers"
@@ -112,11 +112,6 @@ minversion = "8.0"
 addopts = [
     "--strict-markers",
     "--strict-config",
-    "--cov=beancount_importers",
-    "--cov-report=term-missing",
-    "--cov-report=html",
-    "--cov-report=xml",
-    "--cov-fail-under=80",
     "-Wignore::DeprecationWarning:dateutil.tz.tz",
 ]
 testpaths = ["tests"]

@@ -83,3 +83,35 @@ awk -F= '
 ' "$GITCONFIG_GLOBAL" >"$GITCONFIG_OUT"
 
 echo "Generated valid .gitconfig at $GITCONFIG_OUT from effective config in current directory"
+
+# Copy GitHub CLI config from host to container (for settings, aliases, etc.)
+HOST_GITHUB_CLI_CONFIG_DIR="$HOME/.config/gh"
+if [ -d "$HOST_GITHUB_CLI_CONFIG_DIR" ]; then
+	cp -r "$HOST_GITHUB_CLI_CONFIG_DIR" "$CONF_DIR/gh"
+	echo "Copied GitHub CLI config from $HOST_GITHUB_CLI_CONFIG_DIR to $CONF_DIR/gh"
+else
+	echo "Warning: No GitHub CLI config directory found at $HOST_GITHUB_CLI_CONFIG_DIR"
+	echo "GitHub CLI settings and aliases may not be available in the container"
+fi
+
+# Export GitHub CLI token from keyring to container
+# This happens every time we connect to ensure the token is fresh
+GH_TOKEN_FILE="$CONF_DIR/.gh_token"
+if command -v gh >/dev/null 2>&1; then
+	if gh auth status >/dev/null 2>&1; then
+		# Export token from keyring
+		gh auth token >"$GH_TOKEN_FILE" 2>/dev/null || {
+			echo "Warning: Failed to export GitHub CLI token from keyring"
+			echo "GitHub CLI authentication may not work in the container"
+		}
+		if [ -f "$GH_TOKEN_FILE" ] && [ -s "$GH_TOKEN_FILE" ]; then
+			echo "Exported GitHub CLI token to $GH_TOKEN_FILE"
+		fi
+	else
+		echo "Warning: GitHub CLI is not authenticated on host"
+		echo "Run 'gh auth login' on the host to enable GitHub CLI in the container"
+	fi
+else
+	echo "Warning: GitHub CLI (gh) is not installed on host"
+	echo "GitHub CLI authentication will not be available in the container"
+fi
