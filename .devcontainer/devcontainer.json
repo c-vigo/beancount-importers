@@ -1,6 +1,9 @@
 {
     "name": "beancount_importers-devc",
-    "dockerComposeFile": "docker-compose.yml",
+    "dockerComposeFile": [
+        "docker-compose.yml",
+        "docker-compose.override.yml"
+    ],
     "service": "devcontainer",
     "workspaceFolder": "/workspace/beancount_importers",
     "customizations": {
@@ -13,7 +16,7 @@
                 "GitHub.vscode-pull-request-github"
             ],
             "settings": {
-                "python.defaultInterpreterPath": "/usr/local/bin/python",
+                "python.defaultInterpreterPath": "/workspace/beancount_importers/.venv/bin/python",
                 "[python]": {
                     "editor.defaultFormatter": "charliermarsh.ruff",
                     "editor.formatOnSave": true,
