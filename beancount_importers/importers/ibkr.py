@@ -468,7 +468,14 @@ class Importer(beangulp.Importer):
                             None,
                         ),
                         entry.postings[1],
-                        data.Posting(self.tax_account, -tax[2], None, None, None, None),
+                        data.Posting(
+                            self.tax_account + ":" + tax[2].currency,
+                            -tax[2],
+                            None,
+                            None,
+                            None,
+                            None,
+                        ),
                     ],
                 )
                 matched = True
@@ -556,7 +563,11 @@ class Importer(beangulp.Importer):
                                             None,
                                         ),
                                         data.Posting(
-                                            self.tax_account,
+                                            (
+                                                self.tax_account
+                                                + ":"
+                                                + cash_balance.currency
+                                            ),
                                             -cash_balance,
                                             None,
                                             None,
