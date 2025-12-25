@@ -4,7 +4,7 @@ import logging
 import re
 import warnings
 from csv import DictReader
-from datetime import date
+from datetime import date, datetime
 from typing import Any
 
 import beangulp
@@ -35,14 +35,12 @@ class Importer(beangulp.Importer):
     def identify(self, filepath: str | Any) -> bool:
         """Identify if the file matches the pattern."""
         # Handle both string filepaths and _FileMemo objects from beancount-import
-        if hasattr(filepath, "filepath"):
-            path = filepath.filepath
-        elif hasattr(filepath, "name"):
-            path = filepath.name
-        elif hasattr(filepath, "filename"):
-            path = filepath.filename
-        else:
-            path = str(filepath)
+        path = (
+            getattr(filepath, "filepath", None)
+            or getattr(filepath, "name", None)
+            or getattr(filepath, "filename", None)
+            or str(filepath)
+        )
         return re.search(self._filepattern, path) is not None
 
     def name(self) -> str:
@@ -58,14 +56,12 @@ class Importer(beangulp.Importer):
     ) -> data.Entries:
         """Extract transactions from an IBKR CSV file."""
         # Handle both string filepaths and _FileMemo objects from beancount-import
-        if hasattr(filepath, "filepath"):
-            path = filepath.filepath
-        elif hasattr(filepath, "name"):
-            path = filepath.name
-        elif hasattr(filepath, "filename"):
-            path = filepath.filename
-        else:
-            path = str(filepath)
+        path = (
+            getattr(filepath, "filepath", None)
+            or getattr(filepath, "name", None)
+            or getattr(filepath, "filename", None)
+            or str(filepath)
+        )
 
         entries: data.Entries = []
 
@@ -99,7 +95,15 @@ class Importer(beangulp.Importer):
                     try:
                         # Parse
                         category = row["Type"]
-                        book_date = parse(row["Date"].strip()).date()
+                        parsed_date = parse(row["Date"].strip())
+                        # dateutil.parser.parse returns datetime, which has .date()
+                        if isinstance(parsed_date, datetime):
+                            book_date = parsed_date.date()
+                        elif isinstance(parsed_date, date):
+                            book_date = parsed_date
+                        else:
+                            # Type narrowing fallback
+                            book_date = date.today()
                         meta = data.new_metadata(path, index)
                         meta["document"] = (
                             f"{book_date.year}-12-31-InteractiveBrokers_"
@@ -111,13 +115,19 @@ class Importer(beangulp.Importer):
 
                         # Deposits and withdrawals
                         if category == "Deposits/Withdrawals":
+                            cash_flow_number = cashFlow.number
+                            narration = (
+                                "Deposit"
+                                if cash_flow_number is not None and cash_flow_number > 0
+                                else "Withdrawal"
+                            )
                             entries.append(
                                 data.Transaction(
                                     meta,
                                     book_date,
                                     "*",
                                     "Interactive Brokers",
-                                    "Deposit" if cashFlow.number > 0 else "Withdrawal",
+                                    narration,
                                     data.EMPTY_SET,
                                     data.EMPTY_SET,
                                     [
@@ -420,7 +430,7 @@ class Importer(beangulp.Importer):
                 continue
 
             # It is a dividend transaction
-            if "Dividends" not in entry.narration:
+            if entry.narration is None or "Dividends" not in entry.narration:
                 continue
 
             # Get date and security
@@ -447,8 +457,20 @@ class Importer(beangulp.Importer):
                     withholding_taxes[index2][3] = True
 
                 # Build new postings
+                tax_amount = tax[2]
+                posting_units = entry.postings[0].units
+                if (
+                    tax_amount.number is None
+                    or posting_units is None
+                    or posting_units.number is None
+                ):
+                    warnings.warn(
+                        f"Missing amount data for withholding tax on {trans_date}",
+                        stacklevel=2,
+                    )
+                    continue
                 total_cash_flow = amount.Amount(
-                    D(tax[2].number + entry.postings[0].units.number), tax[2].currency
+                    D(tax_amount.number + posting_units.number), tax_amount.currency
                 )
                 entries[index] = data.Transaction(
                     entry.meta,
@@ -509,7 +531,10 @@ class Importer(beangulp.Importer):
                                 continue
 
                             # It is a dividend transaction
-                            if "Dividends" not in entry.narration:
+                            if (
+                                entry.narration is None
+                                or "Dividends" not in entry.narration
+                            ):
                                 continue
 
                             # It is the same security
@@ -556,7 +581,7 @@ class Importer(beangulp.Importer):
                                         ),
                                         data.Posting(
                                             dividend_account,
-                                            amount.Amount(D(0), tax[2].currency),
+                                            amount.Amount(D("0"), tax[2].currency),
                                             None,
                                             None,
                                             None,
@@ -629,24 +654,26 @@ class Importer(beangulp.Importer):
             for posting in entry.postings:
                 if posting.account == security_account:
                     # Buy or sell?
-                    if posting.units.number > 0:
-                        buys.append(
-                            {
-                                "id": trans_id,
-                                "units": posting.units,
-                                "cost": posting.cost,
-                                "date": entry.date,
-                            }
-                        )
-                    else:
-                        sells.append(
-                            {
-                                "id": trans_id,
-                                "units": posting.units,
-                                "cost": posting.cost,
-                                "date": entry.date,
-                            }
-                        )
+                    if posting.units is not None:
+                        units_number = posting.units.number
+                        if units_number is not None and units_number > 0:
+                            buys.append(
+                                {
+                                    "id": trans_id,
+                                    "units": posting.units,
+                                    "cost": posting.cost,
+                                    "date": entry.date,
+                                }
+                            )
+                        else:
+                            sells.append(
+                                {
+                                    "id": trans_id,
+                                    "units": posting.units,
+                                    "cost": posting.cost,
+                                    "date": entry.date,
+                                }
+                            )
 
         # Sort and process sales
         buys.sort(key=lambda x: x.get("date") or date.min)
@@ -667,12 +694,19 @@ class Importer(beangulp.Importer):
         )
 
         # Calculate pnl
+        if proceeds.number is None:
+            raise ValueError("Proceeds amount is missing")
         pnl_cash_flow = -proceeds.number
         for lot in sold_lots:
             if lot["cost"] is not None:
-                pnl_cash_flow += D(lot["cost"].number * lot["units"].number)
+                cost_number = lot["cost"].number
+                units_number = lot["units"].number
+                if cost_number is not None and units_number is not None:
+                    pnl_cash_flow += D(cost_number * units_number)
 
         # Build postings
+        if commission.number is None:
+            raise ValueError("Commission amount is missing")
         totalProceeds = amount.Amount(
             D(proceeds.number + commission.number), proceeds.currency
         )
@@ -724,7 +758,7 @@ class Importer(beangulp.Importer):
             leftover = lot["units"].number + sell_lot["units"].number
 
             # Exact units to cover the remaining units
-            if leftover == D(0):
+            if leftover == D("0"):
                 # Add the entire lot to "sold lots"
                 sold_lots.append(lot)
 
@@ -744,7 +778,10 @@ class Importer(beangulp.Importer):
                 }
 
                 # Sold units
-                lot["units"] = amount.Amount(-sell_lot["units"].number, security)
+                units_number = sell_lot["units"].number
+                if units_number is None:
+                    raise ValueError("Sell lot units amount is missing")
+                lot["units"] = amount.Amount(-units_number, security)
                 sold_lots.append(lot)
 
                 # Break signal

@@ -205,11 +205,16 @@ class TestCertoOneImporter:
         # Find an entry with special characters
         special_entry = None
         for entry in entries:
-            if isinstance(entry, data.Transaction) and "ETH-Hö" in entry.narration:
+            if (
+                isinstance(entry, data.Transaction)
+                and entry.narration is not None
+                and "ETH-Hö" in entry.narration
+            ):
                 special_entry = entry
                 break
 
         assert special_entry is not None
+        assert special_entry.narration is not None
         assert "ETH-Hö" in special_entry.narration
 
     def test_extract_foreign_currency(
@@ -221,16 +226,22 @@ class TestCertoOneImporter:
         # Find the foreign currency entry (DNK)
         foreign_entry = None
         for entry in entries:
-            if isinstance(entry, data.Transaction) and "DNK" in entry.narration:
+            if (
+                isinstance(entry, data.Transaction)
+                and entry.narration is not None
+                and "DNK" in entry.narration
+            ):
                 foreign_entry = entry
                 break
 
         assert foreign_entry is not None
         assert foreign_entry.date == date(2025, 10, 17)
+        assert foreign_entry.narration is not None
         assert "DNK" in foreign_entry.narration
 
         # Check that amount is still in CHF
         posting = foreign_entry.postings[0]
+        assert posting.units is not None
         assert posting.units.currency == "CHF"
 
     def test_extract_rounding_correction(
@@ -244,6 +255,7 @@ class TestCertoOneImporter:
         for entry in entries:
             if (
                 isinstance(entry, data.Transaction)
+                and entry.narration is not None
                 and "Rundungskorrektur" in entry.narration
             ):
                 rounding_entry = entry
@@ -271,7 +283,7 @@ class TestCertoOneImporter:
         self, importer: Importer, sample_pdf_file: str, csv_cleanup: None
     ) -> None:
         """Test extraction with existing entries."""
-        existing_entries = [
+        existing_entries: data.Entries = [
             data.Transaction(
                 data.new_metadata("existing.beancount", 1),
                 date(2024, 1, 1),
@@ -499,7 +511,7 @@ class TestCertoOneImporterIntegration:
             for entry in entries:
                 if isinstance(entry, data.Balance):
                     assert entry.account == "Assets:CertoOne:Main"
-                else:
+                elif isinstance(entry, data.Transaction):
                     assert any(
                         posting.account == "Assets:CertoOne:Main"
                         for posting in entry.postings
@@ -666,7 +678,7 @@ class TestCertoOneImporterEdgeCases:
                 for entry in entries:
                     if isinstance(entry, data.Balance):
                         assert entry.account == account
-                    else:
+                    elif isinstance(entry, data.Transaction):
                         assert all(
                             posting.account == account for posting in entry.postings
                         )

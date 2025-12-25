@@ -72,14 +72,22 @@ class TestSBBImporter:
             (
                 e
                 for e in entries
-                if e.date == date(2024, 1, 15) and "Zürich HB → Bern" in e.narration
+                if isinstance(e, data.Transaction)
+                and e.date == date(2024, 1, 15)
+                and e.narration is not None
+                and "Zürich HB → Bern" in e.narration
             ),
             None,
         )
         assert transaction is not None
+        assert isinstance(transaction, data.Transaction)
         assert transaction.payee == "SBB"
-        assert transaction.postings[0].units.number == D("-25.50")
-        assert transaction.postings[0].units.currency == "CHF"
+        assert transaction.postings
+        posting_units = transaction.postings[0].units
+        assert posting_units is not None
+        assert posting_units.number is not None
+        assert posting_units.number == D("-25.50")
+        assert posting_units.currency == "CHF"
 
     def test_extract_metadata(self, importer: Importer, sample_csv_file: str) -> None:
         """Test that transaction metadata is correctly set."""
@@ -87,6 +95,7 @@ class TestSBBImporter:
 
         # Check first entry metadata
         first_entry = entries[0]
+        assert isinstance(first_entry, data.Transaction)
         assert first_entry.meta["filename"] == sample_csv_file
         assert first_entry.meta.get("orderno") == "12345678"
         assert first_entry.meta.get("traveller") == "Person A"
@@ -110,15 +119,19 @@ class TestSBBImporter:
         ]
 
         for entry, expected_amount in zip(entries, expected_amounts, strict=True):
-            assert entry.postings[0].units.number == expected_amount
-            assert entry.postings[0].units.currency == "CHF"
+            assert isinstance(entry, data.Transaction)
+            posting_units = entry.postings[0].units
+            assert posting_units is not None
+            assert posting_units.number is not None
+            assert posting_units.number == expected_amount
+            assert posting_units.currency == "CHF"
             assert entry.postings[0].account == "Expenses:Transport:SBB"
 
     def test_extract_with_existing_entries(
         self, importer: Importer, sample_csv_file: str
     ) -> None:
         """Test that extract works with existing entries."""
-        existing = [
+        existing: data.Entries = [
             data.Transaction(
                 data.new_metadata("test.beancount", 0),
                 date(2024, 1, 1),
@@ -226,7 +239,11 @@ class TestSBBImporter:
             entries = importer.extract(temp_path)
             # Should only extract transaction for Person A
             assert len(entries) == 1
-            assert entries[0].postings[0].units.number == D("-25.50")
+            assert isinstance(entries[0], data.Transaction)
+            posting_units = entries[0].postings[0].units
+            assert posting_units is not None
+            assert posting_units.number is not None
+            assert posting_units.number == D("-25.50")
         finally:
             os.unlink(temp_path)
 
@@ -273,6 +290,7 @@ class TestSBBImporter:
         try:
             entries = importer.extract(temp_path)
             assert len(entries) == 1
+            assert isinstance(entries[0], data.Transaction)
             assert entries[0].date == date(2024, 1, 15)
         finally:
             os.unlink(temp_path)
@@ -310,7 +328,11 @@ class TestSBBImporter:
             entries = importer.extract(temp_path)
             # Should only extract the transaction with Half Fare Card PLUS
             assert len(entries) == 1
-            assert entries[0].postings[0].units.number == D("-25.50")
+            assert isinstance(entries[0], data.Transaction)
+            posting_units = entries[0].postings[0].units
+            assert posting_units is not None
+            assert posting_units.number is not None
+            assert posting_units.number == D("-25.50")
             assert entries[0].meta.get("orderno") == "12345678"
         finally:
             os.unlink(temp_path)

@@ -22,14 +22,12 @@ class Importer(beangulp.Importer):
     def identify(self, filepath: str | Any) -> bool:
         """Identify if the file matches the pattern."""
         # Handle both string filepaths and _FileMemo objects from beancount-import
-        if hasattr(filepath, "filepath"):
-            path = filepath.filepath
-        elif hasattr(filepath, "name"):
-            path = filepath.name
-        elif hasattr(filepath, "filename"):
-            path = filepath.filename
-        else:
-            path = str(filepath)
+        path = (
+            getattr(filepath, "filepath", None)
+            or getattr(filepath, "name", None)
+            or getattr(filepath, "filename", None)
+            or str(filepath)
+        )
         return re.search(self._filepattern, path) is not None
 
     def name(self) -> str:
@@ -45,14 +43,12 @@ class Importer(beangulp.Importer):
     ) -> data.Entries:
         """Extract transactions from an SBB CSV file."""
         # Handle both string filepaths and _FileMemo objects from beancount-import
-        if hasattr(filepath, "filepath"):
-            path = filepath.filepath
-        elif hasattr(filepath, "name"):
-            path = filepath.name
-        elif hasattr(filepath, "filename"):
-            path = filepath.filename
-        else:
-            path = str(filepath)
+        path = (
+            getattr(filepath, "filepath", None)
+            or getattr(filepath, "name", None)
+            or getattr(filepath, "filename", None)
+            or str(filepath)
+        )
 
         entries: data.Entries = []
 

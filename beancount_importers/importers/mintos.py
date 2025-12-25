@@ -3,6 +3,8 @@ import datetime
 import os
 import re
 import warnings
+from datetime import date as date_type
+from decimal import Decimal
 from enum import Enum
 from typing import Any
 
@@ -23,7 +25,7 @@ class TransactionType(Enum):
     Repurchase = "Special: rincipal received from repurchase of small loan parts"
 
     @staticmethod
-    def from_description(desc: str, value: D) -> "TransactionType":
+    def from_description(desc: str, value: Decimal) -> "TransactionType":
         if " - discount/premium for secondary market transaction" in desc:
             if value > 0:
                 return TransactionType.Interest
@@ -68,7 +70,7 @@ class Transaction:
     """Represents a Mintos transaction."""
 
     type: TransactionType
-    value: D
+    value: Decimal
     date: datetime.date
 
     def __init__(self, info: dict[str, str]) -> None:
@@ -77,7 +79,13 @@ class Transaction:
             info["Details"].strip().lower(), self.value
         )
         if self.type != TransactionType.Repurchase:
-            self.date = parse(info["Date"].strip()).date()
+            parsed_date = parse(info["Date"].strip())
+            if isinstance(parsed_date, datetime.datetime):
+                self.date = parsed_date.date()
+            elif isinstance(parsed_date, date_type):
+                self.date = parsed_date
+            else:
+                self.date = date_type.today()
 
 
 class Importer(beangulp.Importer):
@@ -104,14 +112,12 @@ class Importer(beangulp.Importer):
     def identify(self, filepath: str | Any) -> bool:
         """Identify if the file matches the pattern."""
         # Handle both string filepaths and _FileMemo objects from beancount-import
-        if hasattr(filepath, "filepath"):
-            path = filepath.filepath
-        elif hasattr(filepath, "name"):
-            path = filepath.name
-        elif hasattr(filepath, "filename"):
-            path = filepath.filename
-        else:
-            path = str(filepath)
+        path = (
+            getattr(filepath, "filepath", None)
+            or getattr(filepath, "name", None)
+            or getattr(filepath, "filename", None)
+            or str(filepath)
+        )
         return re.search(self._filepattern, path) is not None
 
     def name(self) -> str:
@@ -124,9 +130,9 @@ class Importer(beangulp.Importer):
 
     def build_postings(
         self,
-        accumulated_fees: D,
-        accumulated_interest: D,
-        accumulated_cashflow: D,
+        accumulated_fees: Decimal,
+        accumulated_interest: Decimal,
+        accumulated_cashflow: Decimal,
     ) -> list[data.Posting]:
         """Build postings for accumulated transactions."""
         postings: list[data.Posting] = []
@@ -189,14 +195,12 @@ class Importer(beangulp.Importer):
     ) -> data.Entries:
         """Extract transactions from a Mintos CSV file."""
         # Handle both string filepaths and _FileMemo objects from beancount-import
-        if hasattr(filepath, "filepath"):
-            path = filepath.filepath
-        elif hasattr(filepath, "name"):
-            path = filepath.name
-        elif hasattr(filepath, "filename"):
-            path = filepath.filename
-        else:
-            path = str(filepath)
+        path = (
+            getattr(filepath, "filepath", None)
+            or getattr(filepath, "name", None)
+            or getattr(filepath, "filename", None)
+            or str(filepath)
+        )
 
         entries = []
 

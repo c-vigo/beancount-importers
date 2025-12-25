@@ -68,12 +68,15 @@ class TestIBKRImporter:
             (
                 e
                 for e in entries
-                if isinstance(e, data.Transaction) and "Buy" in e.narration
+                if isinstance(e, data.Transaction)
+                and e.narration is not None
+                and "Buy" in e.narration
             ),
             None,
         )
         assert buy_entry is not None
         assert buy_entry.payee == "Interactive Brokers"
+        assert buy_entry.narration is not None
         assert "Buy" in buy_entry.narration
 
     def test_extract_sell_transactions(
@@ -87,12 +90,15 @@ class TestIBKRImporter:
             (
                 e
                 for e in entries
-                if isinstance(e, data.Transaction) and "Sell" in e.narration
+                if isinstance(e, data.Transaction)
+                and e.narration is not None
+                and "Sell" in e.narration
             ),
             None,
         )
         assert sell_entry is not None
         assert sell_entry.payee == "Interactive Brokers"
+        assert sell_entry.narration is not None
         assert "Sell" in sell_entry.narration
 
     def test_extract_dividends(self, importer: Importer, sample_csv_file: str) -> None:
@@ -103,13 +109,16 @@ class TestIBKRImporter:
         dividend_entries = [
             e
             for e in entries
-            if isinstance(e, data.Transaction) and "Dividends" in e.narration
+            if isinstance(e, data.Transaction)
+            and e.narration is not None
+            and "Dividends" in e.narration
         ]
         assert len(dividend_entries) > 0
 
         # Check first dividend entry
         div_entry = dividend_entries[0]
         assert div_entry.payee == "Interactive Brokers"
+        assert div_entry.narration is not None
         assert "Dividends" in div_entry.narration
 
     def test_extract_withholding_tax(
@@ -126,6 +135,7 @@ class TestIBKRImporter:
             e
             for e in entries
             if isinstance(e, data.Transaction)
+            and e.narration is not None
             and "Dividends" in e.narration
             and "VEA" in e.narration
         ]
@@ -146,6 +156,7 @@ class TestIBKRImporter:
             assert tax_posting.account.endswith(":USD")
             assert tax_posting.account == importer.tax_account + ":USD"
             # Verify currency matches
+            assert tax_posting.units is not None
             assert tax_posting.units.currency == "USD"
 
     def test_withholding_tax_multiple_securities(
@@ -161,7 +172,9 @@ class TestIBKRImporter:
         dividend_entries = [
             e
             for e in entries
-            if isinstance(e, data.Transaction) and "Dividends" in e.narration
+            if isinstance(e, data.Transaction)
+            and e.narration is not None
+            and "Dividends" in e.narration
         ]
 
         # Check that all dividend entries with tax have currency-specific tax accounts
@@ -179,7 +192,7 @@ class TestIBKRImporter:
                     ),
                     None,
                 )
-                if cash_posting:
+                if cash_posting and cash_posting.units is not None:
                     expected_currency = cash_posting.units.currency
                     assert tax_posting.account.endswith(f":{expected_currency}")
                     assert (
@@ -200,6 +213,7 @@ class TestIBKRImporter:
             e
             for e in entries
             if isinstance(e, data.Transaction)
+            and e.narration is not None
             and "Dividends" in e.narration
             and any(
                 importer.tax_account in p.account
@@ -225,7 +239,7 @@ class TestIBKRImporter:
                     (p for p in entry.postings if p.account == importer.cash_account),
                     None,
                 )
-                if cash_posting:
+                if cash_posting and cash_posting.units is not None:
                     assert currency_suffix == cash_posting.units.currency
 
     def test_withholding_tax_chf_currency(self, importer: Importer) -> None:
@@ -257,7 +271,11 @@ class TestIBKRImporter:
                 (
                     e
                     for e in entries
-                    if isinstance(e, data.Transaction) and "Dividends" in e.narration
+                    if (
+                        isinstance(e, data.Transaction)
+                        and e.narration is not None
+                        and "Dividends" in e.narration
+                    )
                 ),
                 None,
             )
@@ -271,6 +289,7 @@ class TestIBKRImporter:
             assert tax_posting is not None
             # Check that tax account ends with CHF currency suffix
             assert tax_posting.account == importer.tax_account + ":CHF"
+            assert tax_posting.units is not None
             assert tax_posting.units.currency == "CHF"
         finally:
             os.unlink(temp_path)
@@ -286,13 +305,19 @@ class TestIBKRImporter:
             e
             for e in entries
             if isinstance(e, data.Transaction)
+            and e.narration is not None
             and ("Deposit" in e.narration or "Withdrawal" in e.narration)
         ]
         assert len(deposit_entries) > 0
 
         # Check deposit entry
         deposit_entry = next(
-            (e for e in deposit_entries if "Deposit" in e.narration), None
+            (
+                e
+                for e in deposit_entries
+                if e.narration is not None and "Deposit" in e.narration
+            ),
+            None,
         )
         assert deposit_entry is not None
         assert deposit_entry.payee == "Interactive Brokers"
@@ -308,13 +333,16 @@ class TestIBKRImporter:
         fx_entries = [
             e
             for e in entries
-            if isinstance(e, data.Transaction) and "FX Exchange" in e.narration
+            if isinstance(e, data.Transaction)
+            and e.narration is not None
+            and "FX Exchange" in e.narration
         ]
         assert len(fx_entries) > 0
 
         # Check FX entry
         fx_entry = fx_entries[0]
         assert fx_entry.payee == "Interactive Brokers"
+        assert fx_entry.narration is not None
         assert "FX Exchange" in fx_entry.narration
         assert len(fx_entry.postings) >= 2
 
@@ -328,7 +356,9 @@ class TestIBKRImporter:
         interest_entries = [
             e
             for e in entries
-            if isinstance(e, data.Transaction) and "Interests" in e.narration
+            if isinstance(e, data.Transaction)
+            and e.narration is not None
+            and "Interests" in e.narration
         ]
         assert len(interest_entries) > 0
 
@@ -371,7 +401,7 @@ class TestIBKRImporter:
         self, importer: Importer, sample_csv_file: str
     ) -> None:
         """Test that extract works with existing entries."""
-        existing = [
+        existing: data.Entries = [
             data.Transaction(
                 data.new_metadata("test.beancount", 0),
                 date(2024, 1, 1),
@@ -468,7 +498,9 @@ class TestIBKRImporter:
             (
                 e
                 for e in entries
-                if isinstance(e, data.Transaction) and "Buy VEA" in e.narration
+                if isinstance(e, data.Transaction)
+                and e.narration is not None
+                and "Buy VEA" in e.narration
             ),
             None,
         )
@@ -481,7 +513,9 @@ class TestIBKRImporter:
             None,
         )
         assert cash_posting is not None
+        assert cash_posting.units is not None
         assert cash_posting.units.currency == "USD"
+        assert cash_posting.units.number is not None
         assert cash_posting.units.number < 0  # Negative for buy
 
     def test_sell_transaction_fifo(
@@ -495,7 +529,9 @@ class TestIBKRImporter:
             (
                 e
                 for e in entries
-                if isinstance(e, data.Transaction) and "Sell VEA" in e.narration
+                if isinstance(e, data.Transaction)
+                and e.narration is not None
+                and "Sell VEA" in e.narration
             ),
             None,
         )

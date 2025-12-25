@@ -84,7 +84,9 @@ class TestRevolutImporter:
 
         # Verify we have all transaction types
         narrations = {
-            entry.narration for entry in entries if isinstance(entry, data.Transaction)
+            entry.narration
+            for entry in entries
+            if isinstance(entry, data.Transaction) and entry.narration is not None
         }
 
         assert any("TOPUP" in n for n in narrations)
@@ -104,7 +106,9 @@ class TestRevolutImporter:
 
         # Verify we have all transaction types
         narrations = {
-            entry.narration for entry in entries if isinstance(entry, data.Transaction)
+            entry.narration
+            for entry in entries
+            if isinstance(entry, data.Transaction) and entry.narration is not None
         }
 
         assert any("TOPUP" in n for n in narrations)
@@ -123,6 +127,7 @@ class TestRevolutImporter:
         for entry in entries:
             if isinstance(entry, data.Transaction):
                 for posting in entry.postings:
+                    assert posting.units is not None
                     assert posting.units.currency == "EUR"
 
     def test_extract_topup(self, importer: Importer, chf_csv_file: str) -> None:
@@ -131,7 +136,11 @@ class TestRevolutImporter:
 
         topup_entry = None
         for entry in entries:
-            if isinstance(entry, data.Transaction) and "TOPUP" in entry.narration:
+            if (
+                isinstance(entry, data.Transaction)
+                and entry.narration is not None
+                and "TOPUP" in entry.narration
+            ):
                 topup_entry = entry
                 break
 
@@ -151,6 +160,7 @@ class TestRevolutImporter:
         for entry in entries:
             if (
                 isinstance(entry, data.Transaction)
+                and entry.narration is not None
                 and "CARD_PAYMENT" in entry.narration
                 and "Test Merchant" in entry.narration
             ):
@@ -173,6 +183,7 @@ class TestRevolutImporter:
         for entry in entries:
             if (
                 isinstance(entry, data.Transaction)
+                and entry.narration is not None
                 and "CARD_PAYMENT" in entry.narration
                 and "Online Store" in entry.narration
             ):
@@ -190,7 +201,11 @@ class TestRevolutImporter:
 
         exchange_entry = None
         for entry in entries:
-            if isinstance(entry, data.Transaction) and "EXCHANGE" in entry.narration:
+            if (
+                isinstance(entry, data.Transaction)
+                and entry.narration is not None
+                and "EXCHANGE" in entry.narration
+            ):
                 exchange_entry = entry
                 break
 
@@ -204,7 +219,11 @@ class TestRevolutImporter:
 
         atm_entry = None
         for entry in entries:
-            if isinstance(entry, data.Transaction) and "ATM" in entry.narration:
+            if (
+                isinstance(entry, data.Transaction)
+                and entry.narration is not None
+                and "ATM" in entry.narration
+            ):
                 atm_entry = entry
                 break
 
@@ -218,7 +237,11 @@ class TestRevolutImporter:
 
         transfer_entry = None
         for entry in entries:
-            if isinstance(entry, data.Transaction) and "TRANSFER" in entry.narration:
+            if (
+                isinstance(entry, data.Transaction)
+                and entry.narration is not None
+                and "TRANSFER" in entry.narration
+            ):
                 transfer_entry = entry
                 break
 
@@ -248,7 +271,7 @@ class TestRevolutImporter:
         self, importer: Importer, chf_csv_file: str
     ) -> None:
         """Test extraction with existing entries."""
-        existing_entries = [
+        existing_entries: data.Entries = [
             data.Transaction(
                 data.new_metadata("existing.beancount", 1),
                 date(2024, 1, 1),
@@ -267,6 +290,7 @@ class TestRevolutImporter:
         assert len(entries) > 0
         assert all(
             not isinstance(entry, data.Transaction)
+            or entry.narration is None
             or entry.narration != "Existing transaction"
             for entry in entries
         )
@@ -317,6 +341,7 @@ class TestRevolutImporter:
             entries = importer.extract(temp_file, [])
             # Should only extract the COMPLETED transaction
             assert len(entries) == 1
+            assert isinstance(entries[0], data.Transaction)
             assert entries[0].narration == "CARD_PAYMENT Test Merchant"
             assert entries[0].date == date(2024, 1, 2)
         finally:
@@ -345,6 +370,7 @@ class TestRevolutImporter:
             entries = importer.extract(temp_file, [])
             # Should only extract the non-zero transaction
             assert len(entries) == 1
+            assert isinstance(entries[0], data.Transaction)
             assert entries[0].narration == "CARD_PAYMENT Test Merchant"
             assert entries[0].date == date(2024, 1, 2)
         finally:

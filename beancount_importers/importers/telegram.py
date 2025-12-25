@@ -1,6 +1,7 @@
 import csv
 import re
 import warnings
+from datetime import date, datetime
 from typing import Any
 
 import beangulp
@@ -25,14 +26,12 @@ class Importer(beangulp.Importer):
     def identify(self, filepath: str | Any) -> bool:
         """Identify if the file matches the pattern."""
         # Handle both string filepaths and _FileMemo objects from beancount-import
-        if hasattr(filepath, "filepath"):
-            path = filepath.filepath
-        elif hasattr(filepath, "name"):
-            path = filepath.name
-        elif hasattr(filepath, "filename"):
-            path = filepath.filename
-        else:
-            path = str(filepath)
+        path = (
+            getattr(filepath, "filepath", None)
+            or getattr(filepath, "name", None)
+            or getattr(filepath, "filename", None)
+            or str(filepath)
+        )
         return re.search(self._filepattern, path) is not None
 
     def name(self) -> str:
@@ -50,14 +49,12 @@ class Importer(beangulp.Importer):
         entries: data.Entries = []
 
         # Handle both string filepaths and _FileMemo objects
-        if hasattr(filepath, "filepath"):
-            path = filepath.filepath
-        elif hasattr(filepath, "name"):
-            path = filepath.name
-        elif hasattr(filepath, "filename"):
-            path = filepath.filename
-        else:
-            path = str(filepath)
+        path = (
+            getattr(filepath, "filepath", None)
+            or getattr(filepath, "name", None)
+            or getattr(filepath, "filename", None)
+            or str(filepath)
+        )
 
         try:
             with open(path, encoding="utf-8") as csvfile:
@@ -83,7 +80,13 @@ class Importer(beangulp.Importer):
                 try:
                     # Parse entry
                     meta = data.new_metadata(path, index)
-                    book_date = parse(row["transaction_date"].strip()).date()
+                    parsed_date = parse(row["transaction_date"].strip())
+                    if isinstance(parsed_date, datetime):
+                        book_date = parsed_date.date()
+                    elif isinstance(parsed_date, date):
+                        book_date = parsed_date
+                    else:
+                        book_date = date.today()
                     amt = amount.Amount(D(row["amount"]), row["currency"])
                     note = row["description"].strip()
                     payee = row["payee"].strip()

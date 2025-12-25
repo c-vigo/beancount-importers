@@ -71,6 +71,7 @@ class TestZkbCSVImporter:
         for entry in entries:
             if (
                 isinstance(entry, data.Transaction)
+                and entry.narration is not None
                 and "Credit salary" in entry.narration
             ):
                 credit_entry = entry
@@ -94,6 +95,7 @@ class TestZkbCSVImporter:
         for entry in entries:
             if (
                 isinstance(entry, data.Transaction)
+                and entry.narration is not None
                 and "Debit TWINT" in entry.narration
                 and entry.date == date(2024, 1, 5)
             ):
@@ -113,7 +115,9 @@ class TestZkbCSVImporter:
         entries = importer.extract(sample_csv_file, [])
 
         narrations = {
-            entry.narration for entry in entries if isinstance(entry, data.Transaction)
+            entry.narration
+            for entry in entries
+            if isinstance(entry, data.Transaction) and entry.narration is not None
         }
 
         # Check for different transaction types
@@ -162,7 +166,7 @@ class TestZkbCSVImporter:
         self, importer: ZkbCSVImporter, sample_csv_file: str
     ) -> None:
         """Test extraction with existing entries."""
-        existing_entries = [
+        existing_entries: data.Entries = [
             data.Transaction(
                 data.new_metadata("existing.beancount", 1),
                 date(2024, 1, 1),

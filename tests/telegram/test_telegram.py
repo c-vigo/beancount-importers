@@ -185,12 +185,20 @@ class TestTelegramImporter:
             (
                 e
                 for e in entries
-                if isinstance(e, data.Transaction) and e.postings[0].units.number > 0
+                if isinstance(e, data.Transaction)
+                and e.postings
+                and e.postings[0].units is not None
+                and e.postings[0].units.number is not None
+                and e.postings[0].units.number > 0
             ),
             None,
         )
         assert transaction is not None
-        assert transaction.postings[0].units.number > 0
+        assert transaction.postings
+        posting_units = transaction.postings[0].units
+        assert posting_units is not None
+        assert posting_units.number is not None
+        assert posting_units.number > 0
 
     def test_extract_negative_amount(
         self, importer: Importer, sample_csv_file: str
@@ -203,12 +211,20 @@ class TestTelegramImporter:
             (
                 e
                 for e in entries
-                if isinstance(e, data.Transaction) and e.postings[0].units.number < 0
+                if isinstance(e, data.Transaction)
+                and e.postings
+                and e.postings[0].units is not None
+                and e.postings[0].units.number is not None
+                and e.postings[0].units.number < 0
             ),
             None,
         )
         assert transaction is not None
-        assert transaction.postings[0].units.number < 0
+        assert transaction.postings
+        posting_units = transaction.postings[0].units
+        assert posting_units is not None
+        assert posting_units.number is not None
+        assert posting_units.number < 0
 
     def test_extract_multiple_currencies(
         self, importer: Importer, sample_csv_file: str
@@ -218,8 +234,10 @@ class TestTelegramImporter:
 
         currencies = set()
         for entry in entries:
-            if isinstance(entry, data.Transaction):
-                currencies.add(entry.postings[0].units.currency)
+            if isinstance(entry, data.Transaction) and entry.postings:
+                posting_units = entry.postings[0].units
+                if posting_units is not None:
+                    currencies.add(posting_units.currency)
             elif isinstance(entry, data.Balance):
                 currencies.add(entry.amount.currency)
 
@@ -342,7 +360,7 @@ class TestTelegramImporter:
         self, importer: Importer, sample_csv_file: str
     ) -> None:
         """Test that existing entries parameter is accepted."""
-        existing = [
+        existing: data.Entries = [
             data.Transaction(
                 data.new_metadata("test", 0),
                 date(2024, 1, 1),

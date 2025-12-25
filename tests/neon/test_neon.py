@@ -79,8 +79,16 @@ class TestNeonImporter:
             assert isinstance(entry, data.Transaction)
 
         # Find a specific transaction by date (last in file = first processed)
-        jan_25_entry = next((e for e in entries if e.date == date(2024, 1, 25)), None)
+        jan_25_entry = next(
+            (
+                e
+                for e in entries
+                if isinstance(e, data.Transaction) and e.date == date(2024, 1, 25)
+            ),
+            None,
+        )
         assert jan_25_entry is not None
+        assert isinstance(jan_25_entry, data.Transaction)
         assert jan_25_entry.narration == "Employer Name"
         assert jan_25_entry.payee == ""
 
@@ -95,14 +103,21 @@ class TestNeonImporter:
             (
                 e
                 for e in entries
-                if e.date == date(2024, 12, 30)
+                if isinstance(e, data.Transaction)
+                and e.date == date(2024, 12, 30)
+                and e.postings
+                and e.postings[0].units is not None
                 and e.postings[0].units.currency == "CHF"
             ),
             None,
         )
         assert chf_entry is not None
-        assert chf_entry.postings[0].units.number == D("-3000.00")
-        assert chf_entry.postings[0].units.currency == "CHF"
+        assert chf_entry.postings
+        posting_units = chf_entry.postings[0].units
+        assert posting_units is not None
+        assert posting_units.number is not None
+        assert posting_units.number == D("-3000.00")
+        assert posting_units.currency == "CHF"
 
         # Check metadata - should have category but no foreign currency info
         posting_meta = chf_entry.postings[0].meta
@@ -121,13 +136,21 @@ class TestNeonImporter:
             (
                 e
                 for e in entries
-                if e.date == date(2024, 5, 26) and e.postings[0].units.currency == "CHF"
+                if isinstance(e, data.Transaction)
+                and e.date == date(2024, 5, 26)
+                and e.postings
+                and e.postings[0].units is not None
+                and e.postings[0].units.currency == "CHF"
             ),
             None,
         )
         assert usd_entry is not None
-        assert usd_entry.postings[0].units.number == D("-69.46")
-        assert usd_entry.postings[0].units.currency == "CHF"
+        assert usd_entry.postings
+        posting_units = usd_entry.postings[0].units
+        assert posting_units is not None
+        assert posting_units.number is not None
+        assert posting_units.number == D("-69.46")
+        assert posting_units.currency == "CHF"
 
         # Check metadata - should have foreign currency info
         posting_meta = usd_entry.postings[0].meta
@@ -148,46 +171,64 @@ class TestNeonImporter:
             (
                 e
                 for e in entries
-                if e.date == date(2024, 3, 1)
+                if isinstance(e, data.Transaction)
+                and e.date == date(2024, 3, 1)
+                and e.postings
                 and e.postings[0].meta
                 and e.postings[0].meta.get("original_currency") == "EUR"
             ),
             None,
         )
         assert eur_entry is not None
-        assert eur_entry.postings[0].meta.get("original_currency") == "EUR"
-        assert eur_entry.postings[0].meta.get("original_amount") == "-14.70"
-        assert eur_entry.postings[0].meta.get("exchange_rate") == "1.04701"
+        assert isinstance(eur_entry, data.Transaction)
+        assert eur_entry.postings
+        posting_meta = eur_entry.postings[0].meta
+        assert posting_meta is not None
+        assert posting_meta.get("original_currency") == "EUR"
+        assert posting_meta.get("original_amount") == "-14.70"
+        assert posting_meta.get("exchange_rate") == "1.04701"
 
         # Find MXN transaction
         mxn_entry = next(
             (
                 e
                 for e in entries
-                if e.date == date(2024, 5, 21)
+                if isinstance(e, data.Transaction)
+                and e.date == date(2024, 5, 21)
+                and e.postings
                 and e.postings[0].meta
                 and e.postings[0].meta.get("original_currency") == "MXN"
             ),
             None,
         )
         assert mxn_entry is not None
-        assert mxn_entry.postings[0].meta.get("original_currency") == "MXN"
-        assert mxn_entry.postings[0].meta.get("exchange_rate") == "18.18182"
+        assert isinstance(mxn_entry, data.Transaction)
+        assert mxn_entry.postings
+        posting_meta = mxn_entry.postings[0].meta
+        assert posting_meta is not None
+        assert posting_meta.get("original_currency") == "MXN"
+        assert posting_meta.get("exchange_rate") == "18.18182"
 
         # Find CAD transaction
         cad_entry = next(
             (
                 e
                 for e in entries
-                if e.date == date(2024, 4, 5)
+                if isinstance(e, data.Transaction)
+                and e.date == date(2024, 4, 5)
+                and e.postings
                 and e.postings[0].meta
                 and e.postings[0].meta.get("original_currency") == "CAD"
             ),
             None,
         )
         assert cad_entry is not None
-        assert cad_entry.postings[0].meta.get("original_currency") == "CAD"
-        assert cad_entry.postings[0].meta.get("exchange_rate") == "1.48305"
+        assert isinstance(cad_entry, data.Transaction)
+        assert cad_entry.postings
+        posting_meta = cad_entry.postings[0].meta
+        assert posting_meta is not None
+        assert posting_meta.get("original_currency") == "CAD"
+        assert posting_meta.get("exchange_rate") == "1.48305"
 
     def test_extract_description_mapping(
         self, importer_with_map: Importer, sample_csv_file: str
@@ -200,11 +241,14 @@ class TestNeonImporter:
             (
                 e
                 for e in entries
-                if e.date == date(2024, 12, 20) and e.narration == "Monthly salary"
+                if isinstance(e, data.Transaction)
+                and e.date == date(2024, 12, 20)
+                and e.narration == "Monthly salary"
             ),
             None,
         )
         assert mapped_entry is not None
+        assert isinstance(mapped_entry, data.Transaction)
         assert mapped_entry.payee == "Employer Corp"
         assert mapped_entry.narration == "Monthly salary"
 
@@ -213,7 +257,9 @@ class TestNeonImporter:
             (
                 e
                 for e in entries
-                if e.date == date(2024, 12, 30) and e.narration == "Investment Broker"
+                if isinstance(e, data.Transaction)
+                and e.date == date(2024, 12, 30)
+                and e.narration == "Investment Broker"
             ),
             None,
         )
@@ -228,7 +274,11 @@ class TestNeonImporter:
         # Check various categories
         categories_found = set()
         for entry in entries:
-            if entry.postings[0].meta:
+            if (
+                isinstance(entry, data.Transaction)
+                and entry.postings
+                and entry.postings[0].meta
+            ):
                 cat = entry.postings[0].meta.get("category")
                 if cat:
                     categories_found.add(cat)
@@ -247,6 +297,7 @@ class TestNeonImporter:
 
         # Check first entry metadata
         first_entry = entries[0]
+        assert isinstance(first_entry, data.Transaction)
         assert first_entry.meta["filename"] == sample_csv_file
         assert isinstance(first_entry.date, date)
         assert first_entry.flag == "*"
@@ -255,7 +306,7 @@ class TestNeonImporter:
         self, importer: Importer, sample_csv_file: str
     ) -> None:
         """Test that extract works with existing entries."""
-        existing = [
+        existing: data.Entries = [
             data.Transaction(
                 data.new_metadata("test.beancount", 0),
                 date(2024, 1, 1),
@@ -303,10 +354,12 @@ class TestNeonImporter:
 
         # First entry should be from the last line in the file
         # (2024-01-25 is the last date in the sample file)
+        assert isinstance(entries[0], data.Transaction)
         assert entries[0].date == date(2024, 1, 25)
 
         # Last entry should be from the first line in the file
         # (2024-12-30 is the first date in the sample file)
+        assert isinstance(entries[-1], data.Transaction)
         assert entries[-1].date == date(2024, 12, 30)
 
     def test_extract_income_transactions(
@@ -320,13 +373,27 @@ class TestNeonImporter:
             (
                 e
                 for e in entries
-                if e.date == date(2024, 12, 20) and e.postings[0].units.number > 0
+                if (
+                    isinstance(e, data.Transaction)
+                    and e.date == date(2024, 12, 20)
+                    and e.postings
+                    and e.postings[0].units is not None
+                    and e.postings[0].units.number is not None
+                    and e.postings[0].units.number > 0
+                )
             ),
             None,
         )
         assert salary_entry is not None
-        assert salary_entry.postings[0].units.number == D("7484.95")
-        assert salary_entry.postings[0].meta.get("category") == "income_salary"
+        assert isinstance(salary_entry, data.Transaction)
+        assert salary_entry.postings
+        posting_units = salary_entry.postings[0].units
+        assert posting_units is not None
+        assert posting_units.number is not None
+        assert posting_units.number == D("7484.95")
+        posting_meta = salary_entry.postings[0].meta
+        assert posting_meta is not None
+        assert posting_meta.get("category") == "income_salary"
 
     def test_extract_expense_transactions(
         self, importer: Importer, sample_csv_file: str
@@ -339,12 +406,22 @@ class TestNeonImporter:
             (
                 e
                 for e in entries
-                if e.date == date(2024, 12, 24)
+                if isinstance(e, data.Transaction)
+                and e.date == date(2024, 12, 24)
+                and e.postings
+                and e.postings[0].units is not None
+                and e.postings[0].units.number is not None
                 and e.postings[0].units.number == D("-24.95")
+                and e.postings[0].meta is not None
                 and e.postings[0].meta.get("category") == "housing"
             ),
             None,
         )
         assert expense_entry is not None
-        assert expense_entry.postings[0].units.number == D("-24.95")
+        assert isinstance(expense_entry, data.Transaction)
+        assert expense_entry.postings
+        posting_units = expense_entry.postings[0].units
+        assert posting_units is not None
+        assert posting_units.number is not None
+        assert posting_units.number == D("-24.95")
         assert expense_entry.narration == "Internet Provider"

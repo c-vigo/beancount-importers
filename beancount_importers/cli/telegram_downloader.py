@@ -8,6 +8,7 @@ import csv
 import sys
 from argparse import Action, ArgumentError, ArgumentParser, ArgumentTypeError
 from collections.abc import Sequence
+from datetime import date, datetime
 from fnmatch import fnmatch
 from os import remove
 from os.path import expanduser, isfile
@@ -155,8 +156,9 @@ def check_connection(args: Any) -> None:
     client = TelegramClient(args.session_file, args.api_id, args.api_hash)
     with client:
         # Loop over messages
-        the_chat = client.get_entity(args.chat_id)
-        print(f"Chat name: {the_chat.title}")
+        the_chat = client.get_entity(args.chat_id)  # type: ignore[attr-defined]
+        # get_entity works synchronously in sync mode, but type checker doesn't know
+        print(f"Chat name: {the_chat.title}")  # type: ignore[attr-defined]
         for msg in client.iter_messages(args.chat_id, reverse=False, limit=1):
             print(f"Last message ({msg.date}): {msg.text}")
 
@@ -376,9 +378,14 @@ def beancount_telegram() -> None:
                     if len(fields) < 5:
                         raise ValueError("Not enough fields in transaction message")
 
-                    entry["transaction_date"] = parser.parse(fields[0]).strftime(
-                        "%Y-%m-%d"
-                    )
+                    parsed_date = parser.parse(fields[0])
+                    if isinstance(parsed_date, datetime):
+                        entry["transaction_date"] = parsed_date.strftime("%Y-%m-%d")
+                    elif isinstance(parsed_date, date):
+                        entry["transaction_date"] = parsed_date.strftime("%Y-%m-%d")
+                    else:
+                        # Fallback for unexpected types
+                        entry["transaction_date"] = str(parsed_date)
                     entry["account"] = fields[1].strip().replace(" ", "")
                     entry["payee"] = fields[2].strip()
                     entry["description"] = fields[3].strip()

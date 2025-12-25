@@ -3,6 +3,7 @@ import csv
 import datetime
 import logging
 import re
+from datetime import date as date_type
 from typing import Any
 
 import beangulp
@@ -39,22 +40,24 @@ def build_sell_postings(
         for posting in entry.postings:
             if posting.account == sec_account:
                 # Buy or sell?
-                if posting.units[0] > 0:
-                    buys.append(
-                        {
-                            "units": posting.units,
-                            "cost": posting.cost,
-                            "date": entry.date,
-                        }
-                    )
-                else:
-                    sells.append(
-                        {
-                            "units": posting.units,
-                            "cost": posting.cost,
-                            "date": entry.date,
-                        }
-                    )
+                if posting.units is not None and posting.units.number is not None:
+                    units_number = posting.units.number
+                    if units_number > 0:
+                        buys.append(
+                            {
+                                "units": posting.units,
+                                "cost": posting.cost,
+                                "date": entry.date,
+                            }
+                        )
+                    else:
+                        sells.append(
+                            {
+                                "units": posting.units,
+                                "cost": posting.cost,
+                                "date": entry.date,
+                            }
+                        )
 
     # Sort and process sales
     buys.sort(key=lambda x: x.get("date") or datetime.date.min)
@@ -69,14 +72,25 @@ def build_sell_postings(
     )
 
     # Calculate pnl
-    pnl_cash_flow = -proceeds[0]
+    if proceeds.number is None:
+        raise ValueError("Proceeds amount is missing")
+    pnl_cash_flow = -proceeds.number
     share_currency = "CHF"
-    if fx_rate is not None:
-        pnl_cash_flow = -proceeds[0] * fx_rate[0]
-        share_currency = fx_rate[1]
-        price = amount.Amount(D(price[0] * fx_rate[0]), fx_rate[1])
+    if fx_rate is not None and fx_rate.number is not None:
+        pnl_cash_flow = -proceeds.number * fx_rate.number
+        share_currency = fx_rate.currency
+        if price.number is not None:
+            price = amount.Amount(D(price.number * fx_rate.number), fx_rate.currency)
     for lot in sold_lots:
-        pnl_cash_flow += D(lot["cost"][0] * lot["units"][0])
+        lot_cost = lot["cost"]
+        lot_units = lot["units"]
+        if (
+            lot_cost is not None
+            and lot_cost.number is not None
+            and lot_units is not None
+            and lot_units.number is not None
+        ):
+            pnl_cash_flow += D(lot_cost.number * lot_units.number)
 
     # Build postings
     postings = [
@@ -112,10 +126,16 @@ def sell_from_lot(
         if lot is None:
             continue
         # Difference between shares to be sold and shares in this lot
-        leftover = lot["units"][0] + sell_lot["units"][0]
+        lot_units = lot["units"]
+        sell_units = sell_lot["units"]
+        if lot_units is None or lot_units.number is None:
+            continue
+        if sell_units is None or sell_units.number is None:
+            continue
+        leftover = lot_units.number + sell_units.number
 
         # Exact units to cover the remaining units
-        if leftover == D(0):
+        if leftover == D("0"):
             # Add the entire lot to "sold lots"
             sold_lots += [lot]
 
@@ -132,7 +152,10 @@ def sell_from_lot(
             inventory[index]["units"] = data.Amount(leftover, security)  # type: ignore[index]
 
             # Sold units
-            lot["units"] = data.Amount(-sell_lot["units"][0], security)
+            sell_units_num = sell_lot["units"].number
+            if sell_units_num is None:
+                raise ValueError("Sell lot units amount is missing")
+            lot["units"] = data.Amount(-sell_units_num, security)
             sold_lots += [lot]
 
             # Break signal
@@ -180,14 +203,12 @@ class Importer(beangulp.Importer):
 
     def identify(self, filepath: str | Any) -> bool:
         # Handle both string filepaths and _FileMemo objects from beancount-import
-        if hasattr(filepath, "filepath"):
-            path = filepath.filepath
-        elif hasattr(filepath, "name"):
-            path = filepath.name
-        elif hasattr(filepath, "filename"):
-            path = filepath.filename
-        else:
-            path = str(filepath)
+        path = (
+            getattr(filepath, "filepath", None)
+            or getattr(filepath, "name", None)
+            or getattr(filepath, "filename", None)
+            or str(filepath)
+        )
         return re.search(self._filepattern, path) is not None
 
     def name(self) -> str:
@@ -200,14 +221,12 @@ class Importer(beangulp.Importer):
         self, filepath: str | Any, existing_entries: data.Entries | None = None
     ) -> data.Entries:
         # Handle both string filepaths and _FileMemo objects from beancount-import
-        if hasattr(filepath, "filepath"):
-            path = filepath.filepath
-        elif hasattr(filepath, "name"):
-            path = filepath.name
-        elif hasattr(filepath, "filename"):
-            path = filepath.filename
-        else:
-            path = str(filepath)
+        path = (
+            getattr(filepath, "filepath", None)
+            or getattr(filepath, "name", None)
+            or getattr(filepath, "filename", None)
+            or str(filepath)
+        )
 
         entries = []
 
@@ -233,7 +252,13 @@ class Importer(beangulp.Importer):
 
         for index, row in enumerate(reversed(rows)):
             # Parse
-            book_date = parse(row["date"].strip()).date()
+            parsed_date = parse(row["date"].strip())
+            if isinstance(parsed_date, datetime.datetime):
+                book_date: date_type = parsed_date.date()
+            elif isinstance(parsed_date, date_type):
+                book_date = parsed_date
+            else:
+                book_date = date_type.today()
             meta = data.new_metadata(path, index)
             cashFlow = amount.Amount(D(row["cashFlow"]), "CHF")
             category = row["category"].strip()
@@ -385,6 +410,10 @@ class Importer(beangulp.Importer):
 
                 # Calculate cost per share from total cost
                 # cashFlow is negative for buys, positive for sells
+                if shares.number is None:
+                    raise ValueError("Shares amount is missing")
+                if cashFlow.number is None:
+                    raise ValueError("Cash flow amount is missing")
                 shares_number = abs(shares.number)
                 total_cost = abs(cashFlow.number)
                 cost_per_share = (

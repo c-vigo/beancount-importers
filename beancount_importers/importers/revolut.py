@@ -1,6 +1,7 @@
 import csv
 import logging
 import re
+from datetime import date, datetime
 from typing import Any
 
 import beangulp
@@ -27,14 +28,12 @@ class Importer(beangulp.Importer):
     def identify(self, filepath: str | Any) -> bool:
         """Identify if the file matches the pattern."""
         # Handle both string filepaths and _FileMemo objects from beancount-import
-        if hasattr(filepath, "filepath"):
-            path = filepath.filepath
-        elif hasattr(filepath, "name"):
-            path = filepath.name
-        elif hasattr(filepath, "filename"):
-            path = filepath.filename
-        else:
-            path = str(filepath)
+        path = (
+            getattr(filepath, "filepath", None)
+            or getattr(filepath, "name", None)
+            or getattr(filepath, "filename", None)
+            or str(filepath)
+        )
         return re.search(self._filepattern, path) is not None
 
     def name(self) -> str:
@@ -50,14 +49,12 @@ class Importer(beangulp.Importer):
     ) -> data.Entries:
         """Extract transactions from a Revolut CSV file."""
         # Handle both string filepaths and _FileMemo objects from beancount-import
-        if hasattr(filepath, "filepath"):
-            path = filepath.filepath
-        elif hasattr(filepath, "name"):
-            path = filepath.name
-        elif hasattr(filepath, "filename"):
-            path = filepath.filename
-        else:
-            path = str(filepath)
+        path = (
+            getattr(filepath, "filepath", None)
+            or getattr(filepath, "name", None)
+            or getattr(filepath, "filename", None)
+            or str(filepath)
+        )
 
         entries = []
 
@@ -88,14 +85,20 @@ class Importer(beangulp.Importer):
         for index, row in enumerate(rows):
             try:
                 meta = data.new_metadata(path, index)
-                book_date = parse(row["Started Date"].strip()).date()
+                parsed_date = parse(row["Started Date"].strip())
+                if isinstance(parsed_date, datetime):
+                    book_date = parsed_date.date()
+                elif isinstance(parsed_date, date):
+                    book_date = parsed_date
+                else:
+                    book_date = date.today()
                 description = row["Type"].strip() + " " + row["Description"].strip()
                 cash_flow = amount.Amount(
                     D(row["Amount"]) - D(row["Fee"]), row["Currency"]
                 )
 
                 # Skip zero amounts
-                if cash_flow.number == D(0):
+                if cash_flow.number == D("0"):
                     continue
 
                 # Skip non-completed transactions

@@ -112,6 +112,7 @@ class TestHouseHoldSplitWiseImporter:
         )
         assert balance is not None
         assert balance.account == "Assets:Splitwise:Household"
+        assert balance.amount.number is not None
         assert balance.amount.number == D("-150.00")
         assert balance.amount.currency == "CHF"
 
@@ -163,6 +164,8 @@ class TestHouseHoldSplitWiseImporter:
             (p for p in transaction.postings if p.account == importer._account), None
         )
         assert owner_posting is not None
+        assert owner_posting.units is not None
+        assert owner_posting.units.number is not None
         assert owner_posting.units.number > 0
 
     def test_extract_partner_paid(
@@ -189,13 +192,15 @@ class TestHouseHoldSplitWiseImporter:
             (p for p in transaction.postings if p.account == importer._account), None
         )
         assert owner_posting is not None
+        assert owner_posting.units is not None
+        assert owner_posting.units.number is not None
         assert owner_posting.units.number < 0
 
     def test_extract_with_existing_entries(
         self, importer: HouseHoldSplitWiseImporter, sample_csv_file: str
     ) -> None:
         """Test that extract works with existing entries."""
-        existing = [
+        existing: data.Entries = [
             data.Transaction(
                 data.new_metadata("test.beancount", 0),
                 date(2024, 1, 1),
@@ -390,6 +395,8 @@ class TestTripSplitWiseImporter:
             (p for p in transaction.postings if p.account == importer._account), None
         )
         assert owner_posting is not None
+        assert owner_posting.units is not None
+        assert owner_posting.units.number is not None
         assert owner_posting.units.number > 0
 
     def test_extract_without_expenses_account(self, sample_csv_file: str) -> None:
@@ -422,7 +429,7 @@ class TestTripSplitWiseImporter:
         self, importer: TripSplitWiseImporter, sample_csv_file: str
     ) -> None:
         """Test that extract works with existing entries."""
-        existing = [
+        existing: data.Entries = [
             data.Transaction(
                 data.new_metadata("test.beancount", 0),
                 date(2024, 1, 1),

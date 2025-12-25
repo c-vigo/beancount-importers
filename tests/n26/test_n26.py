@@ -151,11 +151,12 @@ class TestN26ImporterSimple:
         # Find the credit transfer entry (John Smith)
         credit_entry = None
         for entry in entries:
-            if entry.payee == "John Smith":
+            if isinstance(entry, data.Transaction) and entry.payee == "John Smith":
                 credit_entry = entry
                 break
 
         assert credit_entry is not None
+        assert isinstance(credit_entry, data.Transaction)
         assert credit_entry.date == date(2024, 1, 18)
         assert credit_entry.payee == "John Smith"
         assert credit_entry.narration == "Salary January 2024"
@@ -176,11 +177,12 @@ class TestN26ImporterSimple:
         # Find the debit transfer entry (Maria García)
         debit_entry = None
         for entry in entries:
-            if entry.payee == "Maria García":
+            if isinstance(entry, data.Transaction) and entry.payee == "Maria García":
                 debit_entry = entry
                 break
 
         assert debit_entry is not None
+        assert isinstance(debit_entry, data.Transaction)
         assert debit_entry.date == date(2024, 1, 19)
         assert debit_entry.payee == "Maria García"
         assert debit_entry.narration == "Rent payment"
@@ -201,11 +203,15 @@ class TestN26ImporterSimple:
         # Find the foreign currency entry
         foreign_entry = None
         for entry in entries:
-            if entry.payee == "FOREIGN TRANSACTION":
+            if (
+                isinstance(entry, data.Transaction)
+                and entry.payee == "FOREIGN TRANSACTION"
+            ):
                 foreign_entry = entry
                 break
 
         assert foreign_entry is not None
+        assert isinstance(foreign_entry, data.Transaction)
         assert foreign_entry.date == date(2024, 2, 26)
         assert foreign_entry.payee == "FOREIGN TRANSACTION"
         assert foreign_entry.narration == "US Dollar purchase"
@@ -226,11 +232,15 @@ class TestN26ImporterSimple:
         # Find the special characters entry
         special_entry = None
         for entry in entries:
-            if entry.payee == "SPECIAL CHARS & CO":
+            if (
+                isinstance(entry, data.Transaction)
+                and entry.payee == "SPECIAL CHARS & CO"
+            ):
                 special_entry = entry
                 break
 
         assert special_entry is not None
+        assert isinstance(special_entry, data.Transaction)
         assert special_entry.payee == "SPECIAL CHARS & CO"
         assert special_entry.narration == "Test: áéíóú ñ ç ß € £ ¥"
 
@@ -241,12 +251,19 @@ class TestN26ImporterSimple:
         # Find the emoji entry
         emoji_entry = None
         for entry in entries:
-            if "EMOJI STORE" in entry.payee:
+            if (
+                isinstance(entry, data.Transaction)
+                and entry.payee
+                and "EMOJI STORE" in entry.payee
+            ):
                 emoji_entry = entry
                 break
 
         assert emoji_entry is not None
+        assert isinstance(emoji_entry, data.Transaction)
+        assert emoji_entry.payee is not None
         assert "🛍️" in emoji_entry.payee
+        assert emoji_entry.narration is not None
         assert "🎉" in emoji_entry.narration
 
     def test_extract_zero_amount(
@@ -258,11 +275,12 @@ class TestN26ImporterSimple:
         # Find the zero amount entry
         zero_entry = None
         for entry in entries:
-            if entry.payee == "ZERO AMOUNT":
+            if isinstance(entry, data.Transaction) and entry.payee == "ZERO AMOUNT":
                 zero_entry = entry
                 break
 
         assert zero_entry is not None
+        assert isinstance(zero_entry, data.Transaction)
         assert zero_entry.date == date(2024, 4, 4)
 
         # Check postings for zero amount
@@ -280,11 +298,12 @@ class TestN26ImporterSimple:
         # Find the empty reference entry
         empty_ref_entry = None
         for entry in entries:
-            if entry.payee == "EMPTY REFERENCE":
+            if isinstance(entry, data.Transaction) and entry.payee == "EMPTY REFERENCE":
                 empty_ref_entry = entry
                 break
 
         assert empty_ref_entry is not None
+        assert isinstance(empty_ref_entry, data.Transaction)
         assert empty_ref_entry.narration == ""
 
     def test_extract_unicode_characters(
@@ -296,11 +315,13 @@ class TestN26ImporterSimple:
         # Find the Unicode entry
         unicode_entry = None
         for entry in entries:
-            if entry.payee == "Café Français":
+            if isinstance(entry, data.Transaction) and entry.payee == "Café Français":
                 unicode_entry = entry
                 break
 
         assert unicode_entry is not None
+        assert isinstance(unicode_entry, data.Transaction)
+        assert unicode_entry.narration is not None
         assert "Coffee & croissant" in unicode_entry.narration
 
     def test_extract_very_large_amounts(
@@ -312,14 +333,17 @@ class TestN26ImporterSimple:
         # Find the large amount entry
         large_entry = None
         for entry in entries:
-            if entry.payee == "LARGE AMOUNT":
+            if isinstance(entry, data.Transaction) and entry.payee == "LARGE AMOUNT":
                 large_entry = entry
                 break
 
         assert large_entry is not None
+        assert isinstance(large_entry, data.Transaction)
 
         # Check that large amount is handled correctly
         main_posting = large_entry.postings[0]
+        assert main_posting.units is not None
+        assert main_posting.units.number is not None
         assert main_posting.units.number == D("-9999.99")
 
     def test_extract_very_small_amounts(
@@ -331,14 +355,17 @@ class TestN26ImporterSimple:
         # Find the small amount entry
         small_entry = None
         for entry in entries:
-            if entry.payee == "SMALL AMOUNT":
+            if isinstance(entry, data.Transaction) and entry.payee == "SMALL AMOUNT":
                 small_entry = entry
                 break
 
         assert small_entry is not None
+        assert isinstance(small_entry, data.Transaction)
 
         # Check that small amount is handled correctly
         main_posting = small_entry.postings[0]
+        assert main_posting.units is not None
+        assert main_posting.units.number is not None
         assert main_posting.units.number == D("-0.01")
 
     def test_extract_metadata(
@@ -355,7 +382,7 @@ class TestN26ImporterSimple:
         self, importer: n26_importer, sample_csv_file: str
     ) -> None:
         """Test extraction with existing entries."""
-        existing_entries = [
+        existing_entries: data.Entries = [
             data.Transaction(
                 data.new_metadata("existing.beancount", 1),
                 date(2024, 1, 1),
@@ -372,7 +399,10 @@ class TestN26ImporterSimple:
 
         # Should return only new entries, not existing ones
         assert len(entries) == 87
-        assert all(entry.payee != "Existing Payee" for entry in entries)
+        assert all(
+            not isinstance(entry, data.Transaction) or entry.payee != "Existing Payee"
+            for entry in entries
+        )
 
     def test_extract_invalid_csv(self, importer: n26_importer) -> None:
         """Test extraction with invalid CSV content."""
@@ -468,9 +498,10 @@ class TestN26ImporterIntegrationSimple:
 
         # All entries should have the correct account
         for entry in entries:
-            assert any(
-                posting.account == "Assets:N26:Main" for posting in entry.postings
-            )
+            if isinstance(entry, data.Transaction):
+                assert any(
+                    posting.account == "Assets:N26:Main" for posting in entry.postings
+                )
 
     def test_extract_multiple_files(self, importer: n26_importer) -> None:
         """Test extraction from multiple CSV files."""
@@ -478,7 +509,7 @@ class TestN26ImporterIntegrationSimple:
             "tests/n26/N26_Sample.csv",
         ]
 
-        all_entries: list[data.Transaction] = []
+        all_entries: data.Entries = []
         for csv_file in csv_files:
             if os.path.exists(csv_file):
                 entries = importer.extract(csv_file, all_entries)
@@ -518,6 +549,7 @@ class TestN26ImporterIntegrationSimple:
 
         # Basic validation that entries have expected structure
         for entry in csv_entries:
+            assert isinstance(entry, data.Transaction)
             assert hasattr(entry, "date")
             assert hasattr(entry, "payee")
             assert hasattr(entry, "postings")

@@ -2,6 +2,7 @@ import csv
 import re
 import warnings
 from datetime import datetime
+from decimal import Decimal
 from typing import Any
 
 import beangulp
@@ -9,7 +10,7 @@ from beancount.core import amount, data
 from beancount.core.number import D
 
 
-def clean_decimal(formatted_number: str) -> D:
+def clean_decimal(formatted_number: str) -> Decimal:
     """Clean and convert a formatted number string to Decimal."""
     return D(formatted_number.replace("'", ""))
 
@@ -31,19 +32,17 @@ class HouseHoldSplitWiseImporter(beangulp.Importer):
         self.owner = owner
         self.partner = partner
         self.account_map = account_map or {}
-        self.tag = {tag} if tag is not None else data.EMPTY_SET
+        self.tag = frozenset([tag]) if tag is not None else data.EMPTY_SET
 
     def identify(self, filepath: str | Any) -> bool:
         """Identify if the file matches the pattern."""
         # Handle both string filepaths and _FileMemo objects from beancount-import
-        if hasattr(filepath, "filepath"):
-            path = filepath.filepath
-        elif hasattr(filepath, "name"):
-            path = filepath.name
-        elif hasattr(filepath, "filename"):
-            path = filepath.filename
-        else:
-            path = str(filepath)
+        path = (
+            getattr(filepath, "filepath", None)
+            or getattr(filepath, "name", None)
+            or getattr(filepath, "filename", None)
+            or str(filepath)
+        )
         return re.search(self._filepattern, path) is not None
 
     def name(self) -> str:
@@ -59,14 +58,12 @@ class HouseHoldSplitWiseImporter(beangulp.Importer):
     ) -> data.Entries:
         """Extract transactions from a SplitWise household CSV file."""
         # Handle both string filepaths and _FileMemo objects from beancount-import
-        if hasattr(filepath, "filepath"):
-            path = filepath.filepath
-        elif hasattr(filepath, "name"):
-            path = filepath.name
-        elif hasattr(filepath, "filename"):
-            path = filepath.filename
-        else:
-            path = str(filepath)
+        path = (
+            getattr(filepath, "filepath", None)
+            or getattr(filepath, "name", None)
+            or getattr(filepath, "filename", None)
+            or str(filepath)
+        )
 
         entries: data.Entries = []
 
@@ -243,20 +240,18 @@ class TripSplitWiseImporter(beangulp.Importer):
         self._account = account
         self.owner = owner
         self.expenses_account = expenses_account
-        self.tag = {tag} if tag is not None else data.EMPTY_SET
+        self.tag = frozenset([tag]) if tag is not None else data.EMPTY_SET
         self.fixme_account = "Expenses:FIXME"
 
     def identify(self, filepath: str | Any) -> bool:
         """Identify if the file matches the pattern."""
         # Handle both string filepaths and _FileMemo objects from beancount-import
-        if hasattr(filepath, "filepath"):
-            path = filepath.filepath
-        elif hasattr(filepath, "name"):
-            path = filepath.name
-        elif hasattr(filepath, "filename"):
-            path = filepath.filename
-        else:
-            path = str(filepath)
+        path = (
+            getattr(filepath, "filepath", None)
+            or getattr(filepath, "name", None)
+            or getattr(filepath, "filename", None)
+            or str(filepath)
+        )
         return re.search(self._filepattern, path) is not None
 
     def name(self) -> str:
@@ -272,14 +267,12 @@ class TripSplitWiseImporter(beangulp.Importer):
     ) -> data.Entries:
         """Extract transactions from a SplitWise trip CSV file."""
         # Handle both string filepaths and _FileMemo objects from beancount-import
-        if hasattr(filepath, "filepath"):
-            path = filepath.filepath
-        elif hasattr(filepath, "name"):
-            path = filepath.name
-        elif hasattr(filepath, "filename"):
-            path = filepath.filename
-        else:
-            path = str(filepath)
+        path = (
+            getattr(filepath, "filepath", None)
+            or getattr(filepath, "name", None)
+            or getattr(filepath, "filename", None)
+            or str(filepath)
+        )
 
         entries: data.Entries = []
 
@@ -356,19 +349,19 @@ class TripSplitWiseImporter(beangulp.Importer):
             # Parse fields
             splits_decimal = [clean_decimal(split) for split in splits]
             owner_balance = (
-                splits_decimal[idx_owner] if idx_owner < len(splits_decimal) else D(0)
+                splits_decimal[idx_owner] if idx_owner < len(splits_decimal) else D("0")
             )
             others_balance = sum(splits_decimal) - owner_balance
-            all_zeroes = all(split == D(0) for split in splits_decimal)
+            all_zeroes = all(split == D("0") for split in splits_decimal)
 
             # Case 1: no liability for anyone, fully paid by owner and just tracked here
             if all_zeroes:
                 continue
             # Case 2: owner not involved, paid and owed by others
-            elif owner_balance == D(0) and others_balance == D(0):
+            elif owner_balance == D("0") and others_balance == D("0"):
                 continue
             # Case 3: negative balance for owner
-            elif owner_balance < D(0):
+            elif owner_balance < D("0"):
                 # Build postings
                 postings = [
                     data.Posting(

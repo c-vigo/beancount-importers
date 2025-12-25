@@ -1,6 +1,7 @@
 import csv
 import re
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
+from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
@@ -12,7 +13,7 @@ from dateutil.parser import parse
 from pypdf import PdfReader
 
 
-def cleanDecimal(formatted_number: str) -> D:
+def cleanDecimal(formatted_number: str) -> Decimal:
     return D(formatted_number.replace("'", ""))
 
 
@@ -132,14 +133,12 @@ class Importer(beangulp.Importer):
 
     def identify(self, filepath: str | Any) -> bool:
         # Handle both string filepaths and _FileMemo objects from beancount-import
-        if hasattr(filepath, "filepath"):
-            path = filepath.filepath
-        elif hasattr(filepath, "name"):
-            path = filepath.name
-        elif hasattr(filepath, "filename"):
-            path = filepath.filename
-        else:
-            path = str(filepath)
+        path = (
+            getattr(filepath, "filepath", None)
+            or getattr(filepath, "name", None)
+            or getattr(filepath, "filename", None)
+            or str(filepath)
+        )
         return re.search(self._filepattern, path) is not None
 
     def name(self) -> str:
@@ -149,17 +148,15 @@ class Importer(beangulp.Importer):
         return self._account
 
     def extract(
-        self, filepath: str | Any, existing_entries: data.Entries = None
+        self, filepath: str | Any, existing_entries: data.Entries | None = None
     ) -> data.Entries:
         # Handle both string filepaths and _FileMemo objects from beancount-import
-        if hasattr(filepath, "filepath"):
-            path = filepath.filepath
-        elif hasattr(filepath, "name"):
-            path = filepath.name
-        elif hasattr(filepath, "filename"):
-            path = filepath.filename
-        else:
-            path = str(filepath)
+        path = (
+            getattr(filepath, "filepath", None)
+            or getattr(filepath, "name", None)
+            or getattr(filepath, "filename", None)
+            or str(filepath)
+        )
         entries = []
 
         # Parse the PDF to a CSV file
@@ -173,10 +170,17 @@ class Importer(beangulp.Importer):
             rows = list(reader)
 
         # Balance
+        parsed_balance_date = parse(rows[1][0].strip(), dayfirst=False)
+        if isinstance(parsed_balance_date, datetime):
+            balance_date = parsed_balance_date.date()
+        elif isinstance(parsed_balance_date, date):
+            balance_date = parsed_balance_date
+        else:
+            balance_date = date.today()
         entries.append(
             data.Balance(
                 data.new_metadata(path, 0),
-                parse(rows[1][0].strip(), dayfirst=False).date(),
+                balance_date,
                 self._account,
                 amount.Amount(-D(rows[1][1]), self.currency),
                 None,
@@ -186,7 +190,13 @@ class Importer(beangulp.Importer):
 
         # Transactions
         for row in rows[2:]:
-            date = parse(row[0].strip(), dayfirst=False).date()
+            parsed_date = parse(row[0].strip(), dayfirst=False)
+            if isinstance(parsed_date, datetime):
+                transaction_date = parsed_date.date()
+            elif isinstance(parsed_date, date):
+                transaction_date = parsed_date
+            else:
+                transaction_date = date.today()
             cash_flow = D(row[1])
             desc = row[2]
             meta = data.new_metadata(path, 0)
@@ -194,7 +204,7 @@ class Importer(beangulp.Importer):
             entries.append(
                 data.Transaction(
                     meta,
-                    date,
+                    transaction_date,
                     "*",
                     "",
                     desc,

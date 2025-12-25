@@ -1,5 +1,6 @@
 import csv
 import re
+from datetime import date, datetime
 from typing import Any
 
 import beangulp
@@ -23,14 +24,12 @@ class Importer(beangulp.Importer):
 
     def identify(self, filepath: str | Any) -> bool:
         # Handle both string filepaths and _FileMemo objects from beancount-import
-        if hasattr(filepath, "filepath"):
-            path = filepath.filepath
-        elif hasattr(filepath, "name"):
-            path = filepath.name
-        elif hasattr(filepath, "filename"):
-            path = filepath.filename
-        else:
-            path = str(filepath)
+        path = (
+            getattr(filepath, "filepath", None)
+            or getattr(filepath, "name", None)
+            or getattr(filepath, "filename", None)
+            or str(filepath)
+        )
         return re.search(self._filepattern, path) is not None
 
     def name(self) -> str:
@@ -40,17 +39,15 @@ class Importer(beangulp.Importer):
         return self._account
 
     def extract(
-        self, filepath: str | Any, existing_entries: data.Entries = None
+        self, filepath: str | Any, existing_entries: data.Entries | None = None
     ) -> data.Entries:
         # Handle both string filepaths and _FileMemo objects from beancount-import
-        if hasattr(filepath, "filepath"):
-            path = filepath.filepath
-        elif hasattr(filepath, "name"):
-            path = filepath.name
-        elif hasattr(filepath, "filename"):
-            path = filepath.filename
-        else:
-            path = str(filepath)
+        path = (
+            getattr(filepath, "filepath", None)
+            or getattr(filepath, "name", None)
+            or getattr(filepath, "filename", None)
+            or str(filepath)
+        )
 
         entries = []
 
@@ -66,7 +63,13 @@ class Importer(beangulp.Importer):
             try:
                 # Parse transaction
                 meta = data.new_metadata(path, index)
-                book_date = parse(row["Booking Date"].strip()).date()
+                parsed_date = parse(row["Booking Date"].strip())
+                if isinstance(parsed_date, datetime):
+                    book_date = parsed_date.date()
+                elif isinstance(parsed_date, date):
+                    book_date = parsed_date
+                else:
+                    book_date = date.today()
                 payee = row["Partner Name"].strip()
                 description = (
                     row["Payment Reference"].strip() if row["Payment Reference"] else ""

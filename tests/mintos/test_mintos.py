@@ -102,7 +102,11 @@ class TestMintosImporter:
 
         deposit_entry = None
         for entry in entries:
-            if isinstance(entry, data.Transaction) and entry.narration == "Deposit":
+            if (
+                isinstance(entry, data.Transaction)
+                and entry.narration is not None
+                and entry.narration == "Deposit"
+            ):
                 deposit_entry = entry
                 break
 
@@ -122,7 +126,11 @@ class TestMintosImporter:
 
         deposit_entry = None
         for entry in entries:
-            if isinstance(entry, data.Transaction) and entry.narration == "Deposit":
+            if (
+                isinstance(entry, data.Transaction)
+                and entry.narration is not None
+                and entry.narration == "Deposit"
+            ):
                 deposit_entry = entry
                 break
 
@@ -138,7 +146,11 @@ class TestMintosImporter:
 
         withdrawal_entry = None
         for entry in entries:
-            if isinstance(entry, data.Transaction) and entry.narration == "Withdrawal":
+            if (
+                isinstance(entry, data.Transaction)
+                and entry.narration is not None
+                and entry.narration == "Withdrawal"
+            ):
                 withdrawal_entry = entry
                 break
 
@@ -156,7 +168,11 @@ class TestMintosImporter:
         summary_entries = [
             e
             for e in entries
-            if isinstance(e, data.Transaction) and e.narration == "Summary"
+            if (
+                isinstance(e, data.Transaction)
+                and e.narration is not None
+                and e.narration == "Summary"
+            )
         ]
 
         # Should have summary entries (before deposits/withdrawals)
@@ -179,6 +195,7 @@ class TestMintosImporter:
                 None,
             )
             if loans_posting is not None:
+                assert loans_posting.units is not None
                 assert loans_posting.units.currency == "MNTS"
                 assert loans_posting.price is not None
                 assert loans_posting.price == amount.Amount(D("1"), "EUR")
@@ -192,7 +209,11 @@ class TestMintosImporter:
         # Find the first summary entry after the deposit
         deposit_found = False
         for entry in entries:
-            if isinstance(entry, data.Transaction) and entry.narration == "Deposit":
+            if (
+                isinstance(entry, data.Transaction)
+                and entry.narration is not None
+                and entry.narration == "Deposit"
+            ):
                 deposit_found = True
                 continue
             if deposit_found and isinstance(entry, data.Transaction):
@@ -214,7 +235,7 @@ class TestMintosImporter:
         self, importer: Importer, sample_csv_file: str
     ) -> None:
         """Test extraction with existing entries."""
-        existing_entries = [
+        existing_entries: data.Entries = [
             data.Transaction(
                 data.new_metadata("existing.beancount", 1),
                 date(2024, 1, 1),
@@ -324,8 +345,10 @@ class TestMintosImporter:
             (p for p in postings if p.account == "Assets:Mintos:Loans"), None
         )
         assert loans_posting is not None
+        assert loans_posting.units is not None
         assert loans_posting.units.currency == "MNTS"
         # accumulated_cashflow is -50.00 (investments), so loans should be -50.00 MNTS
+        assert loans_posting.units.number is not None
         assert loans_posting.units.number == D("-50.00")
         assert loans_posting.price is not None
         assert loans_posting.price == amount.Amount(D("1"), "EUR")

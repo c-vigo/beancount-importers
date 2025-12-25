@@ -76,7 +76,9 @@ class TestFinPensionImporter:
 
         # Verify we have all transaction types
         narrations = {
-            entry.narration for entry in entries if isinstance(entry, data.Transaction)
+            entry.narration
+            for entry in entries
+            if isinstance(entry, data.Transaction) and entry.narration is not None
         }
 
         assert "Deposit" in narrations
@@ -93,7 +95,11 @@ class TestFinPensionImporter:
 
         deposit_entry = None
         for entry in entries:
-            if isinstance(entry, data.Transaction) and entry.narration == "Deposit":
+            if (
+                isinstance(entry, data.Transaction)
+                and entry.narration is not None
+                and entry.narration == "Deposit"
+            ):
                 deposit_entry = entry
                 break
 
@@ -115,6 +121,7 @@ class TestFinPensionImporter:
         for entry in entries:
             if (
                 isinstance(entry, data.Transaction)
+                and entry.narration is not None
                 and "Buy" in entry.narration
                 and "TestFundCHF" in entry.narration
             ):
@@ -144,6 +151,7 @@ class TestFinPensionImporter:
         for entry in entries:
             if (
                 isinstance(entry, data.Transaction)
+                and entry.narration is not None
                 and "Buy" in entry.narration
                 and "TestFundUSD" in entry.narration
             ):
@@ -166,7 +174,11 @@ class TestFinPensionImporter:
 
         sell_entry = None
         for entry in entries:
-            if isinstance(entry, data.Transaction) and "Sell" in entry.narration:
+            if (
+                isinstance(entry, data.Transaction)
+                and entry.narration is not None
+                and "Sell" in entry.narration
+            ):
                 sell_entry = entry
                 break
 
@@ -186,7 +198,11 @@ class TestFinPensionImporter:
 
         dividend_entry = None
         for entry in entries:
-            if isinstance(entry, data.Transaction) and "Dividends" in entry.narration:
+            if (
+                isinstance(entry, data.Transaction)
+                and entry.narration is not None
+                and "Dividends" in entry.narration
+            ):
                 dividend_entry = entry
                 break
 
@@ -215,7 +231,11 @@ class TestFinPensionImporter:
                 and entry.narration == "Flat-rate administrative fee"
             ):
                 fee_entry = entry
-            if isinstance(entry, data.Transaction) and entry.narration == "Interests":
+            if (
+                isinstance(entry, data.Transaction)
+                and entry.narration is not None
+                and entry.narration == "Interests"
+            ):
                 interests_entry = entry
 
         assert fee_entry is not None
@@ -232,7 +252,11 @@ class TestFinPensionImporter:
 
         transfer_entry = None
         for entry in entries:
-            if isinstance(entry, data.Transaction) and entry.narration == "Transfer":
+            if (
+                isinstance(entry, data.Transaction)
+                and entry.narration is not None
+                and entry.narration == "Transfer"
+            ):
                 transfer_entry = entry
                 break
 
@@ -252,7 +276,7 @@ class TestFinPensionImporter:
         self, importer: Importer, sample_csv_file: str
     ) -> None:
         """Test extraction with existing entries."""
-        existing_entries = [
+        existing_entries: data.Entries = [
             data.Transaction(
                 data.new_metadata("existing.beancount", 1),
                 date(2024, 1, 1),

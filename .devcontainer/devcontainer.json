@@ -17,6 +17,11 @@
             ],
             "settings": {
                 "python.defaultInterpreterPath": "/workspace/beancount_importers/.venv/bin/python",
+                "python.analysis.venvPath": "/workspace/beancount_importers",
+                "python.analysis.venv": ".venv",
+                "python.analysis.extraPaths": [
+                    "/workspace/beancount_importers/.venv/lib/python3.12/site-packages"
+                ],
                 "[python]": {
                     "editor.defaultFormatter": "charliermarsh.ruff",
                     "editor.formatOnSave": true,
