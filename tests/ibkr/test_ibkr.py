@@ -247,10 +247,6 @@ class TestIBKRImporter:
         with tempfile.NamedTemporaryFile(
             mode="w", suffix=".csv", delete=False, encoding="utf-8"
         ) as f:
-            f.write(
-                "Id,Date,Type,Currency,Proceeds,Security,Amount,CostBasis,"
-                "TradePrice,Commission,CommissionCurrency\n"
-            )
             # Dividend in CHF
             f.write(
                 '"10000000001","2024-01-20","Dividends","CHF","100.00","TEST",'
@@ -429,10 +425,8 @@ class TestIBKRImporter:
         with tempfile.NamedTemporaryFile(
             mode="w", suffix=".csv", delete=False, encoding="utf-8"
         ) as f:
-            f.write(
-                "Id,Date,Type,Currency,Proceeds,Security,Amount,CostBasis,"
-                "TradePrice,Commission,CommissionCurrency\n"
-            )
+            # Empty file (no rows)
+            pass
             temp_path = f.name
 
         try:
@@ -446,10 +440,6 @@ class TestIBKRImporter:
         with tempfile.NamedTemporaryFile(
             mode="w", suffix=".csv", delete=False, encoding="utf-8"
         ) as f:
-            f.write(
-                "Id,Date,Type,Currency,Proceeds,Security,Amount,CostBasis,"
-                "TradePrice,Commission,CommissionCurrency\n"
-            )
             # Row with missing Security field (None) that would cause error
             f.write(
                 '"10000000001","2024-01-03","BUY","USD","-563.10","",'
@@ -469,10 +459,6 @@ class TestIBKRImporter:
         with tempfile.NamedTemporaryFile(
             mode="w", suffix=".csv", delete=False, encoding="utf-8"
         ) as f:
-            f.write(
-                "Id,Date,Type,Currency,Proceeds,Security,Amount,CostBasis,"
-                "TradePrice,Commission,CommissionCurrency\n"
-            )
             f.write(
                 '"10000000001","invalid-date","BUY","USD","-563.10","VEA",'
                 '"12","563.45","46.925","-0.35","USD"\n'
