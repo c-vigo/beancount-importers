@@ -9,6 +9,7 @@ from typing import Any
 
 import beangulp
 from beancount.core import amount, data, position
+from beancount.core.data import Directive
 from beancount.core.number import D
 from dateutil.parser import parse
 
@@ -73,7 +74,7 @@ class Importer(beangulp.Importer):
 
         try:
             with open(path, encoding="utf-8") as csvfile:
-                reader = DictReader(
+                reader = DictReader[str](
                     csvfile,
                     fieldnames=[
                         "Id",
@@ -90,8 +91,8 @@ class Importer(beangulp.Importer):
                     ],
                     delimiter=",",
                 )
-                rows = list(reader)  # No header row in IBKR CSV files
-                for index, row in enumerate(rows, start=1):  # First data row is row 1
+                rows = list[dict[str | Any, str | Any]](reader)
+                for index, row in enumerate[dict[str | Any, str | Any]](rows, start=1):
                     try:
                         # Parse
                         category = row["Type"]
@@ -424,7 +425,7 @@ class Importer(beangulp.Importer):
             return entries
 
         # Append withholding taxes
-        for index, entry in enumerate(entries):
+        for index, entry in enumerate[Directive](entries):
             # It is a transaction
             if not isinstance(entry, data.Transaction):
                 continue
@@ -439,7 +440,7 @@ class Importer(beangulp.Importer):
 
             # Find withholding tax
             matched = False
-            for index2, tax in enumerate(withholding_taxes):
+            for index2, tax in enumerate[list[Any]](withholding_taxes):
                 # Match
                 if tax[0] != security or tax[1] != trans_date:
                     continue
@@ -518,11 +519,13 @@ class Importer(beangulp.Importer):
 
         # Withholding tax re-calculations
         indexes: list[int] = []
-        for index, tax in enumerate(unmatched_withholding_taxes):
+        for index, tax in enumerate[list[Any]](unmatched_withholding_taxes):
             # Check for tax re-imbursement
             if tax[2].number > 0:
                 # Find tax re-calculations on same date
-                for index2, match_tax in enumerate(unmatched_withholding_taxes):
+                for index2, match_tax in enumerate[list[Any]](
+                    unmatched_withholding_taxes
+                ):
                     if match_tax[0:1] == tax[0:1] and match_tax[2].number < 0:
                         # Find original dividend
                         for entry in itertools.chain(entries, existing_entries):
@@ -604,7 +607,7 @@ class Importer(beangulp.Importer):
                             )
 
         # Unmatched withholding taxes?
-        for index, tax in enumerate(unmatched_withholding_taxes):
+        for index, tax in enumerate[list[Any]](unmatched_withholding_taxes):
             if index not in indexes:
                 logging.warning(
                     f"Unmatched withholding tax for {tax[0]} on {tax[1]}, "
