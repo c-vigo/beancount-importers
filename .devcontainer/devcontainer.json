@@ -13,7 +13,8 @@
                 "charliermarsh.ruff",
                 "ms-vscode.vscode-json",
                 "redhat.vscode-yaml",
-                "GitHub.vscode-pull-request-github"
+                "GitHub.vscode-pull-request-github",
+                "mechatroner.rainbow-csv"
             ],
             "settings": {
                 "python.defaultInterpreterPath": "/workspace/beancount_importers/.venv/bin/python",
