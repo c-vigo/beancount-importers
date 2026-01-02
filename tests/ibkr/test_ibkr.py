@@ -544,3 +544,42 @@ class TestIBKRImporter:
             None,
         )
         assert cash_posting is not None
+
+    def test_extract_all_rows_processed(
+        self, importer: Importer, sample_csv_file: str
+    ) -> None:
+        """Test that all rows in the CSV file are processed, including the first row.
+
+        This test verifies that the first row (ID 10000000001) is not skipped.
+        The sample CSV has 20 data rows with no header.
+        """
+        entries = importer.extract(sample_csv_file)
+
+        # Count transaction entries
+        transaction_entries = [e for e in entries if isinstance(e, data.Transaction)]
+
+        # Verify the first transaction (ID 10000000001) is present
+        first_transaction = next(
+            (
+                e
+                for e in transaction_entries
+                if isinstance(e, data.Transaction)
+                and e.meta.get("trans_id") == "10000000001"
+            ),
+            None,
+        )
+        assert first_transaction is not None, (
+            "First row (ID 10000000001) was not processed. "
+            "This indicates the first row is being incorrectly skipped."
+        )
+        assert first_transaction.narration is not None
+        assert "Buy" in first_transaction.narration
+
+        # The sample CSV has 20 data rows. Some rows may not create transactions
+        # (e.g., withholding taxes that get matched with dividends), but we should
+        # have at least 15 transactions from the 20 rows.
+        assert len(transaction_entries) >= 15, (
+            f"Expected at least 15 transactions from 20 CSV rows, "
+            f"but got {len(transaction_entries)}. "
+            "This suggests rows are being skipped."
+        )

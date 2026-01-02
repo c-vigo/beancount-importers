@@ -90,8 +90,8 @@ class Importer(beangulp.Importer):
                     ],
                     delimiter=",",
                 )
-                rows = list(reader)[1:]  # Skip header row
-                for index, row in enumerate(rows, start=2):  # Start at 2 (header + 1)
+                rows = list(reader)  # No header row in IBKR CSV files
+                for index, row in enumerate(rows, start=1):  # First data row is row 1
                     try:
                         # Parse
                         category = row["Type"]
