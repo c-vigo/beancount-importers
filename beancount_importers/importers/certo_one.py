@@ -126,10 +126,16 @@ def parse_pdf_to_csv(pdf_file_name: str, csv_file_name: str) -> None:
 class Importer(beangulp.Importer):
     """An importer for Cembra Certo One Statement PDF files."""
 
-    def __init__(self, filepattern: str, account: data.Account):
+    def __init__(
+        self,
+        filepattern: str,
+        account: data.Account,
+        narration_map: dict[str, tuple[str, str]] | None = None,
+    ):
         self._filepattern = filepattern
         self._account = account
         self.currency = "CHF"
+        self.narration_map: dict[str, tuple[str, str]] = narration_map or {}
 
     def identify(self, filepath: str | Any) -> bool:
         # Handle both string filepaths and _FileMemo objects from beancount-import
@@ -198,16 +204,24 @@ class Importer(beangulp.Importer):
             else:
                 transaction_date = date.today()
             cash_flow = D(row[1])
-            desc = row[2]
+            beschreibung = row[2]
             meta = data.new_metadata(path, 0)
-            # meta['document'] = Path(path).name
+
+            payee = ""
+            narration = beschreibung
+            for pattern, (p, n) in self.narration_map.items():
+                if re.search(pattern, beschreibung):
+                    payee = p
+                    narration = n
+                    break
+
             entries.append(
                 data.Transaction(
                     meta,
                     transaction_date,
                     "*",
-                    "",
-                    desc,
+                    payee,
+                    narration,
                     data.EMPTY_SET,
                     data.EMPTY_SET,
                     [

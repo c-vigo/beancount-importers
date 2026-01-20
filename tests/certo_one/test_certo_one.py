@@ -306,6 +306,63 @@ class TestCertoOneImporter:
             for entry in entries
         )
 
+    def test_narration_map_functionality(
+        self, sample_pdf_file: str, csv_cleanup: None
+    ) -> None:
+        """Test narration_map functionality with pattern matching."""
+        narration_map = {
+            "Coop": ("Coop", "Groceries"),
+            "TooGoodToG": ("Too Good To Go", "Restaurant"),
+            "Scolarest": ("ETH Mensa", "Lunch"),
+        }
+        importer = Importer(
+            r"CertoOne.*\.pdf$", "Assets:CertoOne:Main", narration_map=narration_map
+        )
+
+        entries = importer.extract(sample_pdf_file, [])
+
+        # Filter out balance entries
+        transactions = [
+            entry for entry in entries if isinstance(entry, data.Transaction)
+        ]
+
+        # Count transactions matching each pattern
+        coop_transactions = [
+            t for t in transactions if t.payee == "Coop" and t.narration == "Groceries"
+        ]
+        toogoodtog_transactions = [
+            t
+            for t in transactions
+            if t.payee == "Too Good To Go" and t.narration == "Restaurant"
+        ]
+        scolarest_transactions = [
+            t for t in transactions if t.payee == "ETH Mensa" and t.narration == "Lunch"
+        ]
+
+        # Verify expected counts
+        assert len(coop_transactions) == 8, (
+            f"Expected 8 Coop transactions, got {len(coop_transactions)}"
+        )
+        assert len(toogoodtog_transactions) == 1, (
+            f"Expected 1 TooGoodToG transaction, got {len(toogoodtog_transactions)}"
+        )
+        assert len(scolarest_transactions) == 3, (
+            f"Expected 3 Scolarest transactions, got {len(scolarest_transactions)}"
+        )
+
+        # Verify that all matched transactions have correct payee and narration
+        for transaction in coop_transactions:
+            assert transaction.payee == "Coop"
+            assert transaction.narration == "Groceries"
+
+        for transaction in toogoodtog_transactions:
+            assert transaction.payee == "Too Good To Go"
+            assert transaction.narration == "Restaurant"
+
+        for transaction in scolarest_transactions:
+            assert transaction.payee == "ETH Mensa"
+            assert transaction.narration == "Lunch"
+
 
 class TestCertoOnePDFParsing:
     """Test PDF parsing functionality."""
