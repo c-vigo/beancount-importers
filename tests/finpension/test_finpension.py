@@ -184,7 +184,7 @@ class TestFinPensionImporter:
 
         assert sell_entry is not None
         assert sell_entry.date == date(2023, 4, 1)
-        assert len(sell_entry.postings) == 2
+        assert len(sell_entry.postings) == 3
 
         cash_posting = sell_entry.postings[0]
         sec_posting = sell_entry.postings[1]

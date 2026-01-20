@@ -1,4 +1,3 @@
-import copy
 import itertools
 import logging
 import re
@@ -32,6 +31,7 @@ class Importer(beangulp.Importer):
         self.interests_account = income_account + ":Interests"
         self.tax_account = tax_account
         self.fees_account = fees_account
+        self.pnl_account = income_account + ":PnL"
 
     def identify(self, filepath: str | Any) -> bool:
         """Identify if the file matches the pattern."""
@@ -319,11 +319,13 @@ class Importer(beangulp.Importer):
                                 D(row["Commission"]), row["CommissionCurrency"]
                             )
                             shares = amount.Amount(D(row["Amount"]), security)
-                            cost_per_share = position.Cost(
-                                D(row["TradePrice"]),
-                                row["Currency"],
-                                book_date,
-                                None,
+                            cost_per_share = position.CostSpec(
+                                number_per=D(row["TradePrice"]),
+                                date=None,
+                                label=None,
+                                merge=None,
+                                number_total=None,
+                                currency=row["Currency"],
                             )
                             proceeds = amount.Amount(
                                 D(row["Proceeds"]) + D(row["Commission"]),
@@ -378,6 +380,57 @@ class Importer(beangulp.Importer):
                             commission = amount.Amount(
                                 D(row["Commission"]), row["CommissionCurrency"]
                             )
+                            proceeds = amount.Amount(
+                                D(row["Proceeds"]) + D(row["Commission"]),
+                                row["Currency"],
+                            )
+                            security_account = self._parent_account + ":" + security
+
+                            postings = [
+                                # Cash: net proceeds
+                                data.Posting(
+                                    self.cash_account,
+                                    proceeds,
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                ),
+                                # Security: no cost ({}), explicit unit price.
+                                data.Posting(
+                                    security_account,
+                                    shares,
+                                    position.CostSpec(
+                                        number_per=None,
+                                        number_total=None,
+                                        currency=None,
+                                        date=None,
+                                        label=None,
+                                        merge=None,
+                                    ),
+                                    price,
+                                    None,
+                                    None,
+                                ),
+                                # Fees: negative commission
+                                data.Posting(
+                                    self.fees_account,
+                                    -commission,
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                ),
+                                # PnL: negative proceeds
+                                data.Posting(
+                                    self.pnl_account,
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                ),
+                            ]
 
                             entries.append(
                                 data.Transaction(
@@ -388,15 +441,7 @@ class Importer(beangulp.Importer):
                                     f"Sell {row['Security']}",
                                     data.EMPTY_SET,
                                     data.EMPTY_SET,
-                                    self.build_fifo_postings(
-                                        existing_entries + entries,
-                                        meta["trans_id"],
-                                        book_date,
-                                        shares,
-                                        cashFlow,
-                                        price,
-                                        commission,
-                                    ),
+                                    postings,
                                 )
                             )
 
@@ -615,199 +660,3 @@ class Importer(beangulp.Importer):
                 )
 
         return entries
-
-    def build_fifo_postings(
-        self,
-        entries: data.Entries,
-        transaction_id: str,
-        lot_date: date,
-        shares: amount.Amount,
-        proceeds: amount.Amount,
-        price: amount.Amount,
-        commission: amount.Amount,
-    ) -> list[data.Posting]:
-        # Accounts
-        security = shares.currency
-        security_account = self._parent_account + ":" + security
-        pnl_account = self._income_account + ":" + security + ":OnL"
-
-        # Build inventory
-        processed_transactions: list[str] = []
-        buys: list[dict[str, Any]] = []
-        sells: list[dict[str, Any]] = []
-        for entry in entries:
-            # It is a transaction
-            if not isinstance(entry, data.Transaction):
-                continue
-
-            if "trans_id" not in entry.meta:
-                continue
-            trans_id = entry.meta["trans_id"]
-
-            # Up to given transaction
-            if trans_id >= transaction_id:
-                continue
-
-            # Avoid duplicate processing
-            if trans_id in processed_transactions:
-                continue
-            processed_transactions.append(trans_id)
-
-            # Find a trade with this commodity
-            for posting in entry.postings:
-                if posting.account == security_account:
-                    # Buy or sell?
-                    if posting.units is not None:
-                        units_number = posting.units.number
-                        if units_number is not None and units_number > 0:
-                            buys.append(
-                                {
-                                    "id": trans_id,
-                                    "units": posting.units,
-                                    "cost": posting.cost,
-                                    "date": entry.date,
-                                }
-                            )
-                        else:
-                            sells.append(
-                                {
-                                    "id": trans_id,
-                                    "units": posting.units,
-                                    "cost": posting.cost,
-                                    "date": entry.date,
-                                }
-                            )
-
-        # Sort and process sales
-        buys.sort(key=lambda x: x.get("date") or date.min)
-        sells.sort(key=lambda x: x.get("date") or date.min)
-        inventory: list[dict[str, Any] | None] = buys  # type: ignore[assignment]
-        for sell in sells:
-            inventory, _ = self.sell_from_lot(inventory, sell)
-
-        # Sell lot
-        inventory, sold_lots = self.sell_from_lot(
-            inventory,
-            {
-                "id": transaction_id,
-                "units": shares,
-                "cost": None,
-                "date": lot_date,
-            },
-        )
-
-        # Calculate pnl
-        if proceeds.number is None:
-            raise ValueError("Proceeds amount is missing")
-        pnl_cash_flow = -proceeds.number
-        for lot in sold_lots:
-            if lot["cost"] is not None:
-                cost_number = lot["cost"].number
-                units_number = lot["units"].number
-                if cost_number is not None and units_number is not None:
-                    pnl_cash_flow += D(cost_number * units_number)
-
-        # Build postings
-        if commission.number is None:
-            raise ValueError("Commission amount is missing")
-        totalProceeds = amount.Amount(
-            D(proceeds.number + commission.number), proceeds.currency
-        )
-        postings: list[data.Posting] = [
-            data.Posting(self.cash_account, totalProceeds, None, None, None, None),
-            data.Posting(
-                pnl_account,
-                amount.Amount(D(pnl_cash_flow), proceeds.currency),
-                None,
-                None,
-                None,
-                None,
-            ),
-        ]
-        if commission.number != 0:
-            postings.append(
-                data.Posting(self.fees_account, -commission, None, None, None, None)
-            )
-
-        for lot in sold_lots:
-            postings.append(
-                data.Posting(
-                    security_account,
-                    -lot["units"],
-                    lot["cost"],
-                    price,
-                    None,
-                    None,
-                )
-            )
-
-        return postings
-
-    def sell_from_lot(
-        self,
-        inventory: list[dict[str, Any] | None],
-        sell_lot: dict[str, Any],
-    ) -> tuple[list[dict[str, Any] | None], list[dict[str, Any]]]:
-        target_sell = sell_lot
-        security = sell_lot["units"].currency
-
-        # FIFO selling
-        sold_lots: list[dict[str, Any]] = []
-        sale_complete = False
-        for index, lot in enumerate(copy.deepcopy(inventory)):
-            if lot is None:
-                continue
-            # Difference between shares to be sold and shares in this lot
-            leftover = lot["units"].number + sell_lot["units"].number
-
-            # Exact units to cover the remaining units
-            if leftover == D("0"):
-                # Add the entire lot to "sold lots"
-                sold_lots.append(lot)
-
-                # Remove the lot from the inventory
-                inventory[index] = None
-
-                # Break signal
-                sale_complete = True
-                break
-
-            # More than enough units to cover the remaining units
-            if leftover > 0:
-                # Remaining units in this lot
-                inventory[index] = {
-                    **lot,
-                    "units": amount.Amount(leftover, security),
-                }
-
-                # Sold units
-                units_number = sell_lot["units"].number
-                if units_number is None:
-                    raise ValueError("Sell lot units amount is missing")
-                lot["units"] = amount.Amount(-units_number, security)
-                sold_lots.append(lot)
-
-                # Break signal
-                sale_complete = True
-                break
-
-            # Consume this lot and continue to the next one
-            else:
-                # Remove the lot from the inventory
-                inventory[index] = None
-
-                # Sold units
-                sold_lots.append(lot)
-
-                # Reduce the target lot
-                sell_lot["units"] = amount.Amount(
-                    sell_lot["units"].number + lot["units"].number, security
-                )
-
-        # Successful sale?
-        if not sale_complete:
-            logging.warning(
-                f"Error selling {target_sell} from {inventory}\nSold: {sold_lots}"
-            )
-
-        return list(filter(None, inventory)), sold_lots
