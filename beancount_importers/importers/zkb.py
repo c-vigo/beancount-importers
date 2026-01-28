@@ -73,10 +73,11 @@ class ZkbCSVImporter(beangulp.Importer):
 
                 # Parse transaction
                 meta = data.new_metadata(path, index)
+                meta_posting = meta.copy()
 
                 # Add ZKB reference to metadata if available
                 if zkb_ref:
-                    meta["zkb_reference"] = zkb_ref
+                    meta_posting["zkb_reference"] = zkb_ref
 
                 # Parse date with format DD.MM.YYYY
                 book_date = datetime.strptime(date_str, "%d.%m.%Y").date()
@@ -123,7 +124,7 @@ class ZkbCSVImporter(beangulp.Importer):
                         data.EMPTY_SET,
                         [
                             data.Posting(
-                                self._account, cash_flow, None, None, None, None
+                                self._account, cash_flow, None, None, None, meta_posting
                             ),
                         ],
                     )

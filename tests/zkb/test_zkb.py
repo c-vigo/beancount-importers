@@ -135,22 +135,26 @@ class TestZkbCSVImporter:
         """Test that ZKB reference is stored in metadata."""
         entries = importer.extract(sample_csv_file, [])
 
-        # Find an entry with ZKB reference
+        # Find an entry with ZKB reference in posting metadata
+        # In beancount, Posting is a namedtuple with metadata as the 6th field
         for entry in entries:
             if isinstance(entry, data.Transaction):
-                if "zkb_reference" in entry.meta:
-                    assert entry.meta["zkb_reference"] in [
-                        "Z001",
-                        "L001",
-                        "Z002",
-                        "Z003",
-                        "L002",
-                        "Z004",
-                        "L003",
-                    ]
-                    break
-        else:
-            pytest.fail("No entry found with zkb_reference metadata")
+                for posting in entry.postings:
+                    # Access metadata - 6th field of Posting
+                    posting_meta = posting.meta if hasattr(posting, "meta") else None
+                    if posting_meta and isinstance(posting_meta, dict):
+                        if "zkb_reference" in posting_meta:
+                            assert posting_meta["zkb_reference"] in [
+                                "Z001",
+                                "L001",
+                                "Z002",
+                                "Z003",
+                                "L002",
+                                "Z004",
+                                "L003",
+                            ]
+                            return
+        pytest.fail("No entry found with zkb_reference metadata")
 
     def test_extract_metadata(
         self, importer: ZkbCSVImporter, sample_csv_file: str
