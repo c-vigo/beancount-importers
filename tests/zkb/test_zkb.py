@@ -80,6 +80,8 @@ class TestZkbCSVImporter:
         assert credit_entry is not None
         assert credit_entry.date == date(2024, 1, 1)
         assert credit_entry.payee == ""
+        assert credit_entry.narration is not None
+        assert "Credit salary" in credit_entry.narration
         assert credit_entry.flag == "*"
         assert len(credit_entry.postings) == 1
         assert credit_entry.postings[0].account == "Assets:ZKB:Checking"
@@ -95,15 +97,18 @@ class TestZkbCSVImporter:
         for entry in entries:
             if (
                 isinstance(entry, data.Transaction)
+                and entry.date == date(2024, 1, 5)
                 and entry.narration is not None
                 and "Debit TWINT" in entry.narration
-                and entry.date == date(2024, 1, 5)
             ):
                 debit_entry = entry
                 break
 
         assert debit_entry is not None
         assert debit_entry.date == date(2024, 1, 5)
+        assert debit_entry.payee == ""
+        assert debit_entry.narration is not None
+        assert "Debit TWINT" in debit_entry.narration
         assert len(debit_entry.postings) == 1
         assert debit_entry.postings[0].account == "Assets:ZKB:Checking"
         assert debit_entry.postings[0].units == amount.Amount(D("-25.50"), "CHF")
@@ -120,7 +125,9 @@ class TestZkbCSVImporter:
             if isinstance(entry, data.Transaction) and entry.narration is not None
         }
 
-        # Check for different transaction types
+        # Check for different transaction types in narration (booking_text)
+        # Note: With narration_map, booking_text becomes narration
+        # for unmatched transactions, payee defaults to ""
         assert any("Credit salary" in n for n in narrations)
         assert any("Debit TWINT" in n for n in narrations)
         assert any("Debit eBill" in n for n in narrations)
@@ -174,7 +181,7 @@ class TestZkbCSVImporter:
             data.Transaction(
                 data.new_metadata("existing.beancount", 1),
                 date(2024, 1, 1),
-                "*",
+                "",
                 "Existing Payee",
                 "Existing transaction",
                 data.EMPTY_SET,
@@ -272,3 +279,83 @@ class TestZkbCSVImporter:
             assert entry.date.year == 2024
             assert entry.date.month in [1]  # All in January
             assert entry.date.day in [1, 5, 10, 15, 20, 25, 30]
+
+    def test_narration_map_functionality(self, sample_csv_file: str) -> None:
+        """Test narration_map functionality with pattern matching."""
+        narration_map = {
+            "TWINT": ("TWINT", "Mobile Payment"),
+            "eBill": ("Utility Company", "Utilities"),
+            "Purchase ZKB Visa": ("Store", "Shopping"),
+        }
+        importer = ZkbCSVImporter(
+            r"ZKB.*\.csv$", "Assets:ZKB:Checking", narration_map=narration_map
+        )
+
+        entries = importer.extract(sample_csv_file, [])
+
+        # Filter to transactions only
+        transactions = [
+            entry for entry in entries if isinstance(entry, data.Transaction)
+        ]
+
+        # Count transactions matching each pattern
+        twint_transactions = [
+            t
+            for t in transactions
+            if t.payee == "TWINT" and t.narration == "Mobile Payment"
+        ]
+        ebill_transactions = [
+            t
+            for t in transactions
+            if t.payee == "Utility Company" and t.narration == "Utilities"
+        ]
+        purchase_transactions = [
+            t for t in transactions if t.payee == "Store" and t.narration == "Shopping"
+        ]
+
+        # Verify expected counts
+        # TWINT appears twice: "Debit TWINT" and "Credit TWINT"
+        assert len(twint_transactions) == 2, (
+            f"Expected 2 TWINT transactions, got {len(twint_transactions)}"
+        )
+        # eBill appears once: "Debit eBill"
+        assert len(ebill_transactions) == 1, (
+            f"Expected 1 eBill transaction, got {len(ebill_transactions)}"
+        )
+        # Purchase ZKB Visa appears once
+        assert len(purchase_transactions) == 1, (
+            f"Expected 1 Purchase transaction, got {len(purchase_transactions)}"
+        )
+
+        # Verify that all matched transactions have correct payee and narration
+        for transaction in twint_transactions:
+            assert transaction.payee == "TWINT"
+            assert transaction.narration == "Mobile Payment"
+
+        for transaction in ebill_transactions:
+            assert transaction.payee == "Utility Company"
+            assert transaction.narration == "Utilities"
+
+        for transaction in purchase_transactions:
+            assert transaction.payee == "Store"
+            assert transaction.narration == "Shopping"
+
+        # Verify that unmatched transactions use "" as payee
+        # and booking_text as narration
+        unmatched_transactions = [
+            t
+            for t in transactions
+            if t.payee not in ["TWINT", "Utility Company", "Store"]
+        ]
+        assert len(unmatched_transactions) > 0
+        # Check that unmatched transactions use "" as payee
+        # and booking_text in narration (default behavior when no pattern matches)
+        for transaction in unmatched_transactions:
+            assert transaction.payee == ""
+            assert transaction.narration is not None
+            # Should contain the booking text in narration
+            # (e.g., "Credit salary", "Debit Mobile Banking", etc.)
+            assert any(
+                keyword in transaction.narration
+                for keyword in ["salary", "Mobile Banking", "Standing order"]
+            )

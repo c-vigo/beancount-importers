@@ -12,9 +12,15 @@ from beancount.core.number import D
 class ZkbCSVImporter(beangulp.Importer):
     """An importer for ZKB CSV files."""
 
-    def __init__(self, filepattern: str, account: str):
+    def __init__(
+        self,
+        filepattern: str,
+        account: str,
+        narration_map: dict[str, tuple[str, str]] | None = None,
+    ):
         self._filepattern = filepattern
         self._account = account
+        self.narration_map: dict[str, tuple[str, str]] = narration_map or {}
 
     def identify(self, filepath: str | Any) -> bool:
         """Identify if the file matches the pattern."""
@@ -67,6 +73,15 @@ class ZkbCSVImporter(beangulp.Importer):
                 debit_chf = row.get("Debit CHF", "").strip()
                 credit_chf = row.get("Credit CHF", "").strip()
 
+                # Check narration map
+                payee = ""
+                narration = booking_text
+                for pattern, (p, n) in self.narration_map.items():
+                    if re.search(pattern, booking_text):
+                        payee = p
+                        narration = n
+                        break
+
                 # Skip if no date (empty date indicates continuation/detail rows)
                 if not date_str:
                     continue
@@ -81,7 +96,6 @@ class ZkbCSVImporter(beangulp.Importer):
 
                 # Parse date with format DD.MM.YYYY
                 book_date = datetime.strptime(date_str, "%d.%m.%Y").date()
-                description = booking_text if booking_text else ""
 
                 # Determine currency (default to CHF)
                 currency = "CHF"
@@ -118,8 +132,8 @@ class ZkbCSVImporter(beangulp.Importer):
                         meta,
                         book_date,
                         "*",
-                        "",
-                        description,
+                        payee,
+                        narration,
                         data.EMPTY_SET,
                         data.EMPTY_SET,
                         [
