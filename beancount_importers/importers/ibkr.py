@@ -23,6 +23,7 @@ class Importer(beangulp.Importer):
         income_account: str,
         tax_account: str,
         fees_account: str,
+        name_account: str,
     ):
         self._filepattern = filepattern
         self._parent_account = parent_account
@@ -32,6 +33,7 @@ class Importer(beangulp.Importer):
         self.tax_account = tax_account
         self.fees_account = fees_account
         self.pnl_account = income_account + ":PnL"
+        self.name_account = name_account
 
     def identify(self, filepath: str | Any) -> bool:
         """Identify if the file matches the pattern."""
@@ -108,6 +110,7 @@ class Importer(beangulp.Importer):
                         meta = data.new_metadata(path, index)
                         meta["document"] = (
                             f"{book_date.year}-12-31-InteractiveBrokers_"
+                            f"{self.name_account}_"
                             "ActivityReport.pdf"
                         )
                         meta["trans_id"] = row["Id"]

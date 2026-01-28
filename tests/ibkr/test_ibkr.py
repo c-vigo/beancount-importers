@@ -22,6 +22,7 @@ class TestIBKRImporter:
             "Income:Investment:IBKR",
             "Assets:Investment:IBKR:Tax",
             "Expenses:Investment:IBKR:Fees",
+            "Main",
         )
 
     @pytest.fixture  # type: ignore[misc]
