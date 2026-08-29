@@ -1,3 +1,6 @@
 # Add account names and identifiers as valid words
 [default.extend-identifiers]
 PnL = "PnL"
+
+# Merchant name in N26 test fixtures (tests/n26/), not a misspelling of "canvas"
+CANVA = "CANVA"
