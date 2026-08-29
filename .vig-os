@@ -1,0 +1,3 @@
+# vig-os devkit configuration
+DEVKIT_FEATURES_DISABLED=sync-issues,worktree
+DEVKIT_REFS_POLICY=optional
