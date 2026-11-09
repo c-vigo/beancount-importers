@@ -1,5 +1,6 @@
 import csv
 import re
+from collections.abc import Iterable
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
@@ -12,102 +13,132 @@ from beancount.core.number import D
 from dateutil.parser import parse
 from pypdf import PdfReader
 
+# Header of the transaction table, repeated on every page it spans.
+TRANSACTION_HEADER_RE = re.compile(r"Verbucht am\s+Beschreibung")
+# Closing balance. The amount is captured too, because the balance sometimes
+# comes as a table of its own whose columns are not the transaction columns.
+BALANCE_RE = re.compile(
+    r"Saldo per (\d\d\.\d\d\.\d\d\d\d) zu unseren Gunsten CHF\s*([\d'.]*)"
+)
+# Area of a statement page holding the transaction table, in PDF points.
+TABLE_AREA = "50,700,560,90"
+
 
 def cleanDecimal(formatted_number: str) -> Decimal:
     return D(formatted_number.replace("'", ""))
 
 
-def parse_pdf_to_csv(pdf_file_name: str, csv_file_name: str) -> None:
-    transactions = []
+def balance_as_of(formatted_date: str) -> date:
+    """Day on which a stated closing balance holds.
 
-    # get number of pages
+    Cembra states the balance at the end of the billing day, beancount asserts
+    it at the start of one, so the assertion belongs to the following day.
+    """
+    return datetime.strptime(formatted_date, "%d.%m.%Y").date() + timedelta(days=1)
+
+
+def statement_pages(pdf_file_name: str) -> list[int]:
+    """Page numbers of the pages that carry statement data.
+
+    The statement proper starts on page 2 — page 1 is the invoice summary, and
+    it repeats the balance line — and runs over as many pages as the
+    transactions need. What follows it varies from month to month: a payment
+    slip, the terms, and once a quarter the cashback summary (#11). Deriving
+    the length of that trailer from the page count silently changes which pages
+    are read whenever the issuer adds one, so select on content instead and
+    keep the pages carrying the transaction header or the closing balance.
+    """
     reader = PdfReader(pdf_file_name)
-    n_pages = len(reader.pages)
+    pages = []
+    for number, page in enumerate(reader.pages, start=1):
+        if number == 1:
+            continue
+        text = page.extract_text()
+        if TRANSACTION_HEADER_RE.search(text) or BALANCE_RE.search(text):
+            pages.append(number)
+    return pages
 
-    # Read tables
-    try:
-        tables = camelot.read_pdf(
-            pdf_file_name,
-            pages=f"2-{n_pages - 2}",
-            flavor="stream",
-            table_areas=["50,700,560,90"],
-        )
-    except (ValueError, TypeError):
-        try:
-            tables = camelot.read_pdf(
-                pdf_file_name,
-                pages=f"2-{n_pages - 3}",
-                flavor="stream",
-                table_areas=["50,700,560,90"],
-            )
-        except (ValueError, TypeError):
-            # If both attempts fail, try with different parameters
-            tables = camelot.read_pdf(
-                pdf_file_name,
-                pages=f"2-{n_pages - 1}",
-                flavor="stream",
-            )
 
-    # Visual debugging
-    # camelot.plot(tables[0], kind='text').show()
-    # camelot.plot(tables[0], kind='grid').show()
+def parse_tables(
+    tables: Iterable[Any],
+) -> tuple[list[list[Any]], date | None, Decimal | None]:
+    """Split tables read off a statement into transactions and the balance.
 
-    balance_date = None
-    balance_amount = None
+    Accepts anything iterable over objects exposing camelot's ``.df``.
+    """
+    transactions: list[list[Any]] = []
+    balance_date: date | None = None
+    balance_amount: Decimal | None = None
 
     for table in tables:
         for _index, row in table.df.iterrows():
-            if len(tuple(row)) == 5:
-                _, book_date, text, credit, debit = tuple(row)
-            elif len(tuple(row)) == 4:
-                book_date, text, credit, debit = tuple(row)
-            else:
-                # Balance in a separate table
-                text, value = tuple(row)
-                balance_match = re.search(
-                    r"Saldo per (\d\d\.\d\d\.\d\d\d\d) zu unseren Gunsten CHF", text
-                )
-                if balance_match:
-                    balance_date = balance_match.group(1)
-                    balance_date = datetime.strptime(balance_date, "%d.%m.%Y").date()
-                    # add 1 day: cembra provides balance at EOD, beancount checks at SOD
-                    balance_date = balance_date + timedelta(days=1)
-                    balance_amount = cleanDecimal(value)
-                continue
+            cells = [str(cell).strip() for cell in tuple(row)]
 
-            book_date, text, credit, debit = (
-                book_date.strip(),
-                text.strip(),
-                credit.strip(),
-                debit.strip(),
-            )
+            if len(cells) == 5:
+                _, book_date, text, credit, debit = cells
+            elif len(cells) == 4:
+                book_date, text, credit, debit = cells
+            else:
+                # Any other table: the balance when it stands on its own, the
+                # quarterly cashback summary, or a stray bit of the trailer.
+                # Match the joined row so that no column count is assumed.
+                balance_match = BALANCE_RE.search(" ".join(c for c in cells if c))
+                if balance_match:
+                    balance_date = balance_as_of(balance_match.group(1))
+                    balance_amount = cleanDecimal(balance_match.group(2) or cells[-1])
+                continue
 
             # Transaction entry
             try:
-                book_date = datetime.strptime(book_date, "%d.%m.%Y").date()
-            except Exception:
-                book_date = None
+                booked_on = datetime.strptime(book_date, "%d.%m.%Y").date()
+            except ValueError:
+                booked_on = None
 
-            if book_date:
+            if booked_on:
+                if not credit and not debit:
+                    # A dated row with both amount columns empty is not a
+                    # transaction: the table area missed the amounts, as it
+                    # does on the oldest statement layout.
+                    continue
                 value = -cleanDecimal(debit) if debit else cleanDecimal(credit)
-                transactions.append([book_date, value, text])
+                transactions.append([booked_on, value, text])
                 continue
 
             # Balance entry
             try:
-                balance_match = re.search(
-                    r"Saldo per (\d\d\.\d\d\.\d\d\d\d) zu unseren Gunsten CHF", text
-                )
+                balance_match = BALANCE_RE.search(text)
                 if balance_match:
-                    balance_date = balance_match.group(1)
-                    balance_date = datetime.strptime(balance_date, "%d.%m.%Y").date()
-                    # add 1 day: cembra provides balance at EOD, beancount checks at SOD
-                    balance_date = balance_date + timedelta(days=1)
+                    balance_date = balance_as_of(balance_match.group(1))
                     balance_amount = (
                         cleanDecimal(debit) if debit else -cleanDecimal(credit)
                     )
             except Exception:
                 pass
+
+    return transactions, balance_date, balance_amount
+
+
+def parse_pdf_to_csv(pdf_file_name: str, csv_file_name: str) -> None:
+    pages = statement_pages(pdf_file_name)
+    if not pages:
+        raise ValueError(
+            f"{pdf_file_name}: no page carries the transaction header or the "
+            "closing balance, the statement layout may have changed"
+        )
+
+    # Read tables
+    tables = camelot.read_pdf(
+        pdf_file_name,
+        pages=",".join(str(page) for page in pages),
+        flavor="stream",
+        table_areas=[TABLE_AREA],
+    )
+
+    # Visual debugging
+    # camelot.plot(tables[0], kind='text').show()
+    # camelot.plot(tables[0], kind='grid').show()
+
+    transactions, balance_date, balance_amount = parse_tables(tables)
 
     # Write to CSV file
     with open(csv_file_name, "w") as f:

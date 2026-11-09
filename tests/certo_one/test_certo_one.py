@@ -447,7 +447,6 @@ class TestCertoOnePDFParsing:
             "beancount_importers.importers.certo_one.camelot.read_pdf"
         ) as mock_camelot:
             # Simulate the specific TypeError that occurs in bbox_from_textlines
-            # All three attempts will fail, and the third should propagate the error
             mock_camelot.side_effect = TypeError(
                 "cannot unpack non-iterable NoneType object"
             )
@@ -456,17 +455,17 @@ class TestCertoOnePDFParsing:
             with tempfile.TemporaryDirectory() as temp_dir:
                 csv_file = os.path.join(temp_dir, "BboxError_Test.csv")
 
-                # This should raise the TypeError from camelot
-                # The first two attempts catch the error, but the third propagates it
+                # A camelot failure is the caller's to see, not ours to retry
+                # with a different page range
                 with pytest.raises(
                     TypeError, match="cannot unpack non-iterable NoneType object"
                 ):
                     parse_pdf_to_csv("tests/certo_one/CertoOne_Sample.pdf", csv_file)
 
-    def test_parse_pdf_camelot_typeerror(self) -> None:
-        """Test PDF parsing with TypeError from camelot (bbox unpacking issue)."""
-        # Create a PDF that might cause the bbox unpacking error
-        # This simulates a PDF with table structure that causes camelot to fail
+    def test_parse_pdf_without_statement_page(self) -> None:
+        """Test PDF parsing of a PDF that holds no statement page."""
+        # A single blank page: no transaction header, no closing balance. Report
+        # the layout rather than write a CSV the importer cannot read.
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_pdf = os.path.join(temp_dir, "temp.pdf")
 
@@ -508,15 +507,12 @@ class TestCertoOnePDFParsing:
                 f.write(b"174\n")
                 f.write(b"%%EOF\n")
 
-            csv_file = os.path.join(temp_dir, "CamelotError_Test.csv")
+            csv_file = os.path.join(temp_dir, "NoStatementPage_Test.csv")
 
-            # This should now handle the error gracefully and succeed
-            # The improved error handling catches TypeError and tries
-            # alternative approaches
-            parse_pdf_to_csv(temp_pdf, csv_file)
+            with pytest.raises(ValueError, match="statement layout may have changed"):
+                parse_pdf_to_csv(temp_pdf, csv_file)
 
-            # Verify that a CSV file was created (even if empty or minimal)
-            assert os.path.exists(csv_file)
+            assert not os.path.exists(csv_file)
 
     def test_parse_pdf_invalid_file(self) -> None:
         """Test PDF parsing with invalid file."""
@@ -825,6 +821,14 @@ class TestCertoOneTableDispatch:
         assert len(transactions) == 3
         assert balance_date == date(2026, 8, 24)
         assert balance_amount == D("1234.50")
+
+    def test_parse_tables_ignores_rows_without_an_amount(self) -> None:
+        """A dated row with no amount at all is not a transaction."""
+        transactions, _, _ = parse_tables(
+            [self.table([["", "30.07.2026", "Ihre Zahlung", "", ""]])]
+        )
+
+        assert transactions == []
 
     def test_parse_tables_ignores_unknown_shapes(self) -> None:
         """Any other table shape is skipped rather than guessed at."""
