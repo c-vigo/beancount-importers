@@ -28,18 +28,22 @@ dependencies = [
     "beangulp",
     "python-dateutil",
     "camelot-py",
+    # camelot imports cv2 at module load (camelot/image_processing.py), but
+    # camelot-py declares opencv only under its `cv`/`base` extras — which pull
+    # the GUI build. Declare the headless variant explicitly: it was only ever
+    # present transitively in uv.lock and a dependency re-resolution dropped it,
+    # leaving `import beancount_importers` broken.
+    "opencv-python-headless",
     "pypdf",
     "telethon",
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = [
     "pytest==8.4.1",
     "pytest-cov==6.2.1",
     "pytest-mock==3.14.1",
-    "ruff==0.12.10",
     "mypy==1.17.0",
-    "pre-commit==4.3.0",
     "coverage==7.10.5",
 ]
 

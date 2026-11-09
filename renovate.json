@@ -1,0 +1,7 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "github>c-vigo/beancount-importers//.github/renovate-default"
+  ],
+  "enabledManagers": ["github-actions", "pep621", "npm"]
+}

@@ -5,12 +5,19 @@ import tempfile
 from collections.abc import Generator
 from datetime import date
 from pathlib import Path
+from typing import Any
 
+import pandas as pd
 import pytest
 from beancount.core import amount, data
 from beancount.core.number import D
 
-from beancount_importers.importers.certo_one import Importer, parse_pdf_to_csv
+from beancount_importers.importers.certo_one import (
+    Importer,
+    parse_pdf_to_csv,
+    parse_tables,
+    statement_pages,
+)
 
 
 class TestCertoOneImporter:
@@ -440,7 +447,6 @@ class TestCertoOnePDFParsing:
             "beancount_importers.importers.certo_one.camelot.read_pdf"
         ) as mock_camelot:
             # Simulate the specific TypeError that occurs in bbox_from_textlines
-            # All three attempts will fail, and the third should propagate the error
             mock_camelot.side_effect = TypeError(
                 "cannot unpack non-iterable NoneType object"
             )
@@ -449,17 +455,17 @@ class TestCertoOnePDFParsing:
             with tempfile.TemporaryDirectory() as temp_dir:
                 csv_file = os.path.join(temp_dir, "BboxError_Test.csv")
 
-                # This should raise the TypeError from camelot
-                # The first two attempts catch the error, but the third propagates it
+                # A camelot failure is the caller's to see, not ours to retry
+                # with a different page range
                 with pytest.raises(
                     TypeError, match="cannot unpack non-iterable NoneType object"
                 ):
                     parse_pdf_to_csv("tests/certo_one/CertoOne_Sample.pdf", csv_file)
 
-    def test_parse_pdf_camelot_typeerror(self) -> None:
-        """Test PDF parsing with TypeError from camelot (bbox unpacking issue)."""
-        # Create a PDF that might cause the bbox unpacking error
-        # This simulates a PDF with table structure that causes camelot to fail
+    def test_parse_pdf_without_statement_page(self) -> None:
+        """Test PDF parsing of a PDF that holds no statement page."""
+        # A single blank page: no transaction header, no closing balance. Report
+        # the layout rather than write a CSV the importer cannot read.
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_pdf = os.path.join(temp_dir, "temp.pdf")
 
@@ -501,15 +507,12 @@ class TestCertoOnePDFParsing:
                 f.write(b"174\n")
                 f.write(b"%%EOF\n")
 
-            csv_file = os.path.join(temp_dir, "CamelotError_Test.csv")
+            csv_file = os.path.join(temp_dir, "NoStatementPage_Test.csv")
 
-            # This should now handle the error gracefully and succeed
-            # The improved error handling catches TypeError and tries
-            # alternative approaches
-            parse_pdf_to_csv(temp_pdf, csv_file)
+            with pytest.raises(ValueError, match="statement layout may have changed"):
+                parse_pdf_to_csv(temp_pdf, csv_file)
 
-            # Verify that a CSV file was created (even if empty or minimal)
-            assert os.path.exists(csv_file)
+            assert not os.path.exists(csv_file)
 
     def test_parse_pdf_invalid_file(self) -> None:
         """Test PDF parsing with invalid file."""
@@ -743,3 +746,143 @@ class TestCertoOneImporterEdgeCases:
             # Clean up the CSV file after test
             if csv_file.exists():
                 csv_file.unlink()
+
+
+class TestCertoOneTableDispatch:
+    """Test the table dispatch on hand-built, camelot-shaped frames.
+
+    Cembra varies the statement trailer from month to month, so the shapes that
+    reach ``parse_tables`` are not all transaction tables. Building the frames
+    here instead of committing a statement PDF keeps real account data out of
+    the repository and makes a layout easy to add.
+    """
+
+    @staticmethod
+    def table(rows: list[list[str]]) -> Any:
+        """Wrap rows in the only thing the parser reads off a camelot table."""
+
+        class FakeTable:
+            def __init__(self, df: pd.DataFrame) -> None:
+                self.df = df
+
+        return FakeTable(pd.DataFrame(rows, dtype=str))
+
+    # Page 2: the transaction table, five columns because the purchase date of
+    # a card transaction sits in its own column.
+    TRANSACTION_ROWS = [
+        ["", "", "Verbucht am Beschreibung", "Gutschrift CHF", "Belastung CHF"],
+        ["", "30.07.2026", "Ihre Zahlung", "1'716.50", ""],
+        ["06.08.2026", "07.08.2026", "Example Shop Zürich CHE", "", "27.15"],
+        ["", "23.08.2026", "Rundungskorrektur", "", "0.02"],
+    ]
+
+    # The closing balance, which lands in a two-column table of its own
+    # whenever the transaction table ends on the previous page.
+    BALANCE_ROWS = [["Saldo per 23.08.2026 zu unseren Gunsten CHF", "1'234.50"]]
+
+    # The quarterly "Certo! Cashback-Übersicht" page, three columns (#11).
+    CASHBACK_ROWS = [
+        ["Certo! Cashback-Übersicht", "", ""],
+        ["Gesammelter Cashback im aktuellen Quartal:", "CHF 10.00", ""],
+        ["Zeitraum:", "24.06.2026 - 23.08.2026", ""],
+        ["Nächste Gutschrift am:", "23.10.2026", ""],
+        ["Händler:in\nCashback %", "", "CHF"],
+        ["Example Shop\n 1.00%", "", "2.50"],
+        ["Partner-Angebote", "", "0.00"],
+        ["Gesamtbetrag", "", "10.00"],
+    ]
+
+    def test_parse_tables_transactions_and_balance(self) -> None:
+        """Transactions and the standalone balance table are both picked up."""
+        transactions, balance_date, balance_amount = parse_tables(
+            [self.table(self.TRANSACTION_ROWS), self.table(self.BALANCE_ROWS)]
+        )
+
+        assert transactions == [
+            [date(2026, 7, 30), D("1716.50"), "Ihre Zahlung"],
+            [date(2026, 8, 7), D("-27.15"), "Example Shop Zürich CHE"],
+            [date(2026, 8, 23), D("-0.02"), "Rundungskorrektur"],
+        ]
+        # Cembra states the balance at end of day, beancount asserts it at the
+        # start of the next one.
+        assert balance_date == date(2026, 8, 24)
+        assert balance_amount == D("1234.50")
+
+    def test_parse_tables_ignores_cashback_summary(self) -> None:
+        """A cashback summary page must not break the statement (#11)."""
+        transactions, balance_date, balance_amount = parse_tables(
+            [
+                self.table(self.TRANSACTION_ROWS),
+                self.table(self.BALANCE_ROWS),
+                self.table(self.CASHBACK_ROWS),
+            ]
+        )
+
+        assert len(transactions) == 3
+        assert balance_date == date(2026, 8, 24)
+        assert balance_amount == D("1234.50")
+
+    def test_parse_tables_ignores_rows_without_an_amount(self) -> None:
+        """A dated row with no amount at all is not a transaction."""
+        transactions, _, _ = parse_tables(
+            [self.table([["", "30.07.2026", "Ihre Zahlung", "", ""]])]
+        )
+
+        assert transactions == []
+
+    def test_parse_tables_ignores_unknown_shapes(self) -> None:
+        """Any other table shape is skipped rather than guessed at."""
+        transactions, balance_date, balance_amount = parse_tables(
+            [
+                self.table([["Kontonummer: 0000000000"], ["Seite 4/6"]]),
+                self.table([["a", "b", "c", "d", "e", "f"]]),
+            ]
+        )
+
+        assert transactions == []
+        assert balance_date is None
+        assert balance_amount is None
+
+    def test_parse_tables_balance_inside_transaction_table(self) -> None:
+        """On shorter statements the balance is a row of the transaction table."""
+        transactions, balance_date, balance_amount = parse_tables(
+            [
+                self.table(
+                    [
+                        *self.TRANSACTION_ROWS,
+                        [
+                            "",
+                            "",
+                            "Saldo per 23.08.2026 zu unseren Gunsten CHF",
+                            "",
+                            "1'234.50",
+                        ],
+                    ]
+                )
+            ]
+        )
+
+        assert len(transactions) == 3
+        assert balance_date == date(2026, 8, 24)
+        assert balance_amount == D("1234.50")
+
+
+class TestCertoOneStatementPages:
+    """Test which pages of a statement are handed to camelot."""
+
+    @pytest.mark.parametrize(  # type: ignore[misc]
+        "pdf_file",
+        ["tests/certo_one/CertoOne_Sample.pdf", "tests/certo_one/CertoOne_Sample2.pdf"],
+    )
+    def test_statement_pages_selects_the_statement_only(self, pdf_file: str) -> None:
+        """Page 1 and the trailer pages are left out.
+
+        Page 1 repeats the balance line of the invoice summary, and the trailer
+        (payment slip, cashback summary, terms) carries no statement marker at
+        all; only pages holding the transaction header or the closing balance
+        are scanned.
+        """
+        if not os.path.exists(pdf_file):
+            pytest.skip(f"Sample PDF file not found: {pdf_file}")
+
+        assert statement_pages(pdf_file) == [2]
