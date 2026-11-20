@@ -35,6 +35,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Mintos repurchase-of-small-loan-parts rows booked as principal** — the
+  Summary entry used to credit these rows to the income account; they are
+  principal receipts and now reduce the loans leg like other principal rows.
+  The cash total of the Summary is unchanged.
 - **`import beancount_importers` failing with `ModuleNotFoundError: No module
   named 'cv2'`** — a dependency re-resolution dropped the undeclared transitive
   `opencv-python-headless`, breaking every import of the package.
