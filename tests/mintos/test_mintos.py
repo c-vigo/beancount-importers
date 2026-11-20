@@ -359,3 +359,68 @@ class TestMintosImporter:
 
         # Should return empty list when all values are zero
         assert len(postings) == 0
+
+    def test_extract_repurchase_booked_as_principal(self, importer: Importer) -> None:
+        """Repurchase-of-small-loan-parts rows reduce the loans leg, not income."""
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".csv", delete=False, encoding="utf-8"
+        ) as f:
+            f.write(
+                "TransactionID,DateInput,Details,Turnover,Balance,Date,Value,Type,Note\n"
+            )
+            f.write(
+                "1,2024-01-01,deposits,300.00,300.00,2024-01-01,300.00,Deposit,Funding\n"
+            )
+            f.write(
+                "2,2024-02-01,loan - interest received,4.00,304.00,"
+                "2024-02-01,4.00,Dividend,Interest\n"
+            )
+            f.write(
+                "3,2024-02-10,loan - principal received,20.00,324.00,"
+                "2024-02-10,20.00,Sell,Principal\n"
+            )
+            # Repurchase rows can carry an empty Date field
+            f.write(
+                "4,2024-02-20,principal received from repurchase of small loan parts,"
+                "15.00,339.00,,15.00,Repurchase,Repurchase\n"
+            )
+            f.write(
+                "5,2024-03-01,withdrawal,-100.00,239.00,"
+                "2024-03-01,-100.00,Removal,Payout\n"
+            )
+            temp_file = f.name
+
+        try:
+            entries = importer.extract(temp_file, [])
+            summaries = [
+                e
+                for e in entries
+                if isinstance(e, data.Transaction) and e.narration == "Summary"
+            ]
+            assert len(summaries) == 1
+            summary = summaries[0]
+
+            income = next(
+                (p for p in summary.postings if p.account == "Income:Mintos:Interest"),
+                None,
+            )
+            loans = next(
+                p for p in summary.postings if p.account == "Assets:Mintos:Loans"
+            )
+            cash = next(
+                p for p in summary.postings if p.account == "Assets:Mintos:Cash"
+            )
+
+            # Income reflects only the interest row, not the repurchase principal
+            assert income is not None
+            assert income.units == amount.Amount(D("-4.00"), "EUR")
+
+            # Loans leg carries ordinary and repurchase principal alike
+            assert loans.units is not None
+            assert loans.units.number == D("35.00")
+            assert loans.units.currency == "MNTS"
+
+            # Cash total of the summary is unchanged by the reclassification
+            assert cash.units == amount.Amount(D("39.00"), "EUR")
+        finally:
+            os.unlink(temp_file)
