@@ -231,9 +231,11 @@ class Importer(beangulp.Importer):
                     warnings.warn(f"Error parsing line {row}\n{e}", stacklevel=2)
                     continue
 
-                # Repurchase?
+                # Repurchase: principal received from repurchase of small
+                # loan parts reduces the loans position, like a Sell. These
+                # rows may carry no Date, so last_date is left untouched.
                 if transaction.type == TransactionType.Repurchase:
-                    accumulated_interest = accumulated_interest + transaction.value
+                    accumulated_cashflow = accumulated_cashflow + transaction.value
                     continue
 
                 # Accumulate?
